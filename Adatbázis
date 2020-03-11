@@ -1,0 +1,88 @@
+select SUBSTR(cim, 6, instr(cim, ',') - 6) telepules, count(*) olvasok
+    from KONYVTAR.tag
+    group by SUBSTR(cim, 6, instr(cim, ',') -6)
+    order by olvasok desc;
+    
+SELECT cim, substr(regexp_substr(cim, ' .*,'), 2, length(regexp_substr(cim, ' .*,')) -2)
+    from KONYVTAR.tag;
+
+SELECT cim, trim(',' from trim(regexp_substr(cim, '.*,')))
+    from KONYVTAR.tag;
+    
+select trim(',' from trim(regexp_substr(cim, '.*,'))) telepules, count(*) olvasok
+    from KONYVTAR.tag
+    group by trim(',' from trim(regexp_substr(cim, '.*,')))
+    order by olvasok desc;
+    
+/*
+    Besorolásonként hány 50 évnél fiatalabb nő olvasó van a könyvtárban
+*/
+
+select besorolas, count(*)
+    from KONYVTAR.tag
+    where months_between(sysdate, szuletesi_datum) / 12 < 50 and nem = 'n'
+    group by besorolas;
+    
+/*
+    Különböző években hányan születtek az olvasók közül
+*/
+
+select extract(year from szuletesi_datum) ev, count (*)
+    from KONYVTAR.tag
+    group by extract(year from szuletesi_datum)
+    having count(*) > 1
+    order by ev;
+
+/*
+    Egyes szerzők mennyit kerestek összesen, akik 1 milliótól többet kerestek, a szerzőket azonosítóval adjuk meg, 
+    az eredményt rendezzük összkereset szerint növekvőben
+*/
+
+select szerzo_azon, sum(honorarium)
+    from KONYVTAR.konyvszerzo
+    group by szerzo_azon
+    having sum(honorarium) > 1000000
+    order by 2 desc;
+    
+/*
+    Egyes témákhoz hány 500 oldalnál rövidebb könyv tartozik és ezeknek mennyi az átlagára,
+    csak azok a témák érdekelnek, amelyekhez legalább 2 könvy tartozik és nem 's' betűs a téma.
+*/
+
+select tema, count(*), avg(ar)
+    from KONYVTAR.konyv
+    where oldalszam < 500 and tema not like 's%' /*vagy: substr(tema, 1, 1)*/
+    group by tema
+    having count(*) > 1;
+
+/*
+    Ki a legidősebb olvasó?
+*/
+
+select vezeteknev, keresztnev
+    from KONYVTAR.tag
+    where szuletesi_datum = (select min(szuletesi_datum) from KONYVTAR.tag); /*független alkérés, kb konstanst csinál és azzal hasonlítja össze*/
+    
+/*
+    Azok a szerzők, akik az átlagosnál többet kaptak valamelyik könyvért,
+    a szerzőta az azonosítójával írjuk
+*/
+
+select szerzo_azon, honorarium
+    from KONYVTAR.konyvszerzo
+    where honorarium > (select avg(honorarium) from KONYVTAR.konyvszerzo);
+    
+/*
+    --- Összekapcsolások ---
+*/
+
+select * from KONYVTAR.konyv, KONYVTAR.konyvtari_konyv;
+
+select
+    (select count(*) from KONYVTAR.konyv) * (select count(*) from KONYVTAR.konyvtari_konyv)
+    from dual;
+    
+select count(*) from KONYVTAR.konyv, KONYVTAR.konyvtari_konyv;
+
+select * from KONYVTAR.konyv, KONYVTAR.konyvtari_konyv
+    where KONYVTAR.konyv.konyv_azon = KONYVTAR.konyvtari_konyv.konyv_azon;
