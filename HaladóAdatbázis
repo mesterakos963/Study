@@ -1,0 +1,152 @@
+---ELSŐ ÓRA---SQL---
+
+Felhasználónév: u__neptunkód
+
+/*------------------------------------------- 
+  Note
+  Jelszó csere:
+  alter user felhnev identified by jelszó; 
+*/-------------------------------------------
+
+___SZERELŐ SÉMA___
+1. FELADAT: Listázzuk a debreceni tulajdonosok nevét és címét.
+
+select nev, cim from SZERELO.sz_tulajdonos
+where cim like 'Debrecen, %';
+
+2. FELADAT: Listázzuk az Opel, Ford és Skoda márkájú autótípusok megnevezését
+
+select megnevezes
+from SZERELO.sz_autotipus
+where marka in ('Opel', 'Skoda', 'Ford');
+
+3. FELADAT: Piros színű autók rendszáma, típus, márkája.
+
+select rendszam, megnevezes, marka
+from szerelo.sz_auto au
+left outer join szerelo.sz_autotipus ati
+on au.tipus_azon=ati.azon
+where szin='piros';
+
+4. FELADAT: Féktelenül BT vezetője?
+
+select sz.nev
+from szerelo.sz_szerelo sz
+inner join szerelo.sz_szerelomuhely szm
+on sz.azon=szm.vezeto_azon
+where szm.nev='Féktelenül Bt.';
+
+5. FELADAT: Egyes autók típusai. (rendszám, márka)
+
+select rendszam, marka, megnevezes
+from szerelo.sz_auto au
+left outer join szerelo.sz_autotipus ati
+on au.tipus_azon=ati.azon;
+
+6. FELADAT: Egyes márkákhoz hány típus tartozik.
+
+select marka, count(*)
+from szerelo.sz_autotipus ati
+inner join szerelo.sz_auto au
+on ati.azon=au.tipus_azon
+group by marka;
+
+7. FELADAT: Melyek azok a színek, amelyekhez 3-nál több autó tartozik?
+
+select szin, count(*)
+from szerelo.sz_auto
+group by szin 
+having count(*)>3;
+
+8. FELADAT: Melyek azok az autók, amelyeket 3-nál többször szereltek?
+
+select rendszam, au.azon, count(*)
+from szerelo.sz_auto au
+inner join szerelo.sz_szereles sz
+on au.azon=sz.auto_azon
+group by rendszam, au.azon
+having count(*)>3;
+
+9. FELADAT:  Melyek azok az autók, amelyeket 3-nál kevesebbszer szereltek?
+
+select rendszam, au.azon, count(auto_azon)
+from szerelo.sz_auto au
+left outer join szerelo.sz_szereles sz
+on au.azon=sz.auto_azon
+group by rendszam, au.azon
+having count(auto_azon)}<3;
+
+// Nem teljesen jó, valami hiba van, nem fut le
+
+10. FELADAT: Az egyes tulajdonosoknak hány autója van?ű
+
+select nev, tu.azon, count(auto_azon)
+from szerelo.sz_tulajdonos tu
+left outer join
+szerelo.sz_auto_tulajdonosa atu
+on tu.azon=atu.tulaj_azon
+group by nev, tu.azon;
+
+11. FELADAT: Melyik szerelőműhelyben szereltek 65-nél kevesebb különböző autót?
+
+select szm.nev, szm.azon count(sz.auto_azon)
+from szerelo.sz_szerelomuhely szm
+left outer join 
+szerelo.sz_szereles sz
+on szm.azon=sz.muhely_azon
+group by szm.nev, szm.azon
+having count(sz.auto_azon)<65;
+
+//Megint gebaszos
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
