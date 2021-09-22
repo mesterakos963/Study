@@ -101,6 +101,102 @@ having count(sz.auto_azon)<65;
 
 
 
+---MÁSODIK ÓRA---SQL---
+
+1. FELADAT: A legolcsóbb első vásárlási árú autó rendszáma?
+
+//Beágyazott SELECT, mert a ROWNUM nem jó, ha 2 egyforma értékű is van
+
+select rendszam, elso_vasarlasi_ar
+from szerelo.sz_auto
+where elso_vasarlasi_ar=(select min(elso_vasarlasi_ar) from SZERELO.sz_auto);
+
+//BEÁGYAZOTT SELECT NÉLKÜL (fetch first row with ties)
+
+select rendszam, elso_vasarlasi_ar
+from szerelo.sz_auto
+order by elso_vasarlasi_ar
+fetch first row with ties;
+
+//CREATE TABLE
+create table s_auto2
+(rendszam varchar2(20),
+ar number(10),
+szin varchar2(20));
+
+2. FELADAT: Melyik auto (rendszám) értékelték fel a legtöbbször?
+
+select rendszam, au.azon, count(*) db
+from SZERELO.sz_auto au 
+inner join SZERELO.sz_autofelertekeles af
+on au.azon=af.auto_azon
+group by au.rendszam, au.azon
+order by db desc
+fetch first row with ties;
+
+3. FELADAT: Melyik auto (rendszám) értékelték fel a legkevesebbszer?
+
+select rendszam, au.azon, count(datum) db
+from SZERELO.sz_auto au 
+left outer join SZERELO.sz_autofelertekeles af
+on au.azon=af.auto_azon
+group by au.rendszam, au.azon
+order by db
+fetch first row with ties;
+
+4 FELADAT: Piros autók közül melyik a legolcsóbb? 
+
+select rendszam, azon, elso_vasarlasi_ar
+from SZERELO.sz_auto
+where szin like 'piros'
+order by elso_vasarlasi_ar
+fetch first row with ties;
+
+5. FELADAT: Színenként a legnagyobb első vásárlási árú autók rendszáma?
+
+select *
+from szerelo.sz_auto au inner join
+(select szin, max(elso_vasarlasi_ar) eva
+from szerelo.sz_auto
+group by szin)bs
+on (au.szin=bs.szin or (au.szin is null and bs.szin is null))
+and au.elso_vasarlasi_ar=bs.eva;
+
+6. FELADAT: Autóként a legnagyobb munkavégzési árral rendelkező szerelés paraméterei
+                                                                 (kezdete, vége, műhely azon)?
+
+select auk.rendszam, szk.muhely_azon, szk.szereles_kezdete,
+szk.szereles_vege, szk.munkavegzes_ara
+from szerelo.sz_auto auk 
+left outer join szerelo.sz_szereles szk
+on auk.azon=szk.auto_azon
+inner join
+    (select au.azon, max(munkavegzes_ara) mar
+    from szerelo.sz_auto au left outer join szerelo.sz_szereles sz
+    on au.azon=sz.auto_azon
+    group by au.azon) bs
+on (auk.azon=bs.azon or (auk.azon is null and bs.azon is null))
+and (szk.munkavegzes_ara=bs.mar or (szk.munkavegzes_ara is null and
+
+//Na hogy ez mi a faszom???
+
+7. FELADAT: Egyes tulajdonosok melyik autót vásárolták utoljára?
+
+select *
+from SZERELO.sz_tulajdonos tu
+left outer join 
+    (select *
+    from szerelo.sz_auto_tulajdonosa
+    where (tulaj_azon, vasarlas_ideje) in
+        (select tulaj_azon, max(vasarlas_ideje)
+        from SZERELO.sz_auto_tulajdonosa
+        group by tulaj_azon)) bs
+on tu.azon=bs.tulaj_azon
+left outer join szerelo.sz_auto au
+on bs.auto_azon=au.azon;
+
+//Ez sem szebb
+
 
 
 
