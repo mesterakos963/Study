@@ -197,12 +197,121 @@ on bs.auto_azon=au.azon;
 
 //Ez sem szebb
 
+---HARMADIK ÓRA---SQL---
 
+SÉMA: HR.employees;
 
+1. FELADAT: Hogy hívják David Austin főnökét?
 
+//2-szer van használva ugyanaz a tábla, mert a 2 id ugyanabban van, h ki kinek a kije vagy mi a fasz
 
+select boss.first_name, boss.last_name
+from HR.employees da inner join
+HR.employees boss
+on da.manager_id=boss.employee_id
+where da.first_name = 'David'
+and da.last_name='Austin';
 
+2. FELADAT: Minden dolgozó nevét listázzuk ki és a főnökeik nevét is!
 
+select w.first_name||' '||w.last_name, b.first_name||' '||b.last_name
+from hr.employees w left outer join
+hr.employees b
+on w.manager_id=b.employee_id;
+
+---------------Törlés----------------
+
+3. FELADAT: Töröljük a piros autókhoz tarozó tulajdonlásokat!
+
+//Először egy lekérdezést futtassunk le, h ne basztassuk az adatot
+//Törlésnél nem lehet join-t használni
+
+delete 
+from s_auto_tulajdonosa
+where auto_azon in (select azon
+                    from SZERELO.sz_auto
+                    where szin='piros');
+commit;
+
+4. FELADAT: Töröljók azokat az autófelértékeléseket, amelyek Opel márkájú autóhoz tartoznak!
+
+delete
+from SZERELO.sz_autofelertekeles
+where auto_azon in (select au.azon 
+                    from SZERELO.sz_auto au
+                    inner join SZERELO.sz_autotipus at
+                    on au.tipus_azon=at.azon
+                    where at.marka='Opel');
+rollback;
+
+5. FELADAT: Töröljük a szerelés táblából azokat a szereléseket, amelyeket a Féktelenül Bt.-ben végeztek!
+
+delete
+from SZERELO.sz_szereles
+where muhely_azon
+in (select azon
+    from SZERELO.sz_szerelomuhely
+    where nev like 'Féktelenül Bt.');
+rollback;
+
+6. FELADAT: Töröljük azokat a szereléseket, amelyek esetén a munkavégzés ára több, 
+            mint az autó első vásárlási árának 10%-a.
+
+delete
+from SZERELO.sz_szereles sz
+where sz.munkavegzes_ara > (select elso_vasarlasi_ar*0.1
+                            from szerelo.sz_auto au
+                            where sz.auto_azon=au.azon);
+rollback;
+
+7. FELADAT: Töröljük azokat a felértékeléseket, amelyek esetén az érték több, 
+            mint az autó első vásárlási árának a 20%-a!
+
+delete
+from SZERELO.sz_autofelertekeles af
+where af.ertek > (select elso_vasarlasi_ar*0.2
+                            from szerelo.sz_auto au
+                            where af.auto_azon=au.azon);
+rollback;
+
+8. FELADAT: Töröljük azokat a felérékeléseket, amelyek esetén az érték több,
+            mint az autó összes munkavégzési ára (szerelés tábla)!
+
+delete
+from SZERELO.sz_autofelertekeles af
+where af.ertek > (select sum(munkavegzes_ara)
+                    from szerelo.sz_szereles sz
+                    where af.auto_azon=sz.auto_azon);
+rollback;
+
+---------------Módosítás----------------
+
+9. FELADAT: Módosítsuk a szerelés táblát:
+            Zárjunk le minden le nem zárt szerelést a mai dátummal, 
+            a munkavégzés ára legyen az auto első vásárlási árának az 1%-a!
+ 
+update s_szereles sz
+set szereles_vege=sysdate,
+    munkavegzes_ara=(select elso_vasarlasi_ar*0.01
+                    from szerelo.sz_auto au
+                    where sz.auto_azon=au.azon)
+    where szereles_vege is null;
+    
+10. FELADAT: Módosítsuk az autók utolsó felértékelési értékét,
+             az új érték legyen az autó első vásárlási ára csökkentve
+             az autó szereléseihez kapcsolódó munkavégzési árak összegével.
+             
+update s_felertekeles af
+set ertek=(select elso_vasarlasi_ar-
+            from szerelo.sz_auto au
+            where af.auto_azon=au.azon-
+            (select nvl(sum(munkavegzes_ara), 0)
+            from SZERELO.sz_szereles sz
+            where af.auto_azon=sz.auto_azon)
+where datum=(select max(datum)
+        from s_felertekeles baf
+        where af.auto_azon=baf.auto_azon)
+rollback;
 
 
 
