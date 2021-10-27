@@ -1,0 +1,20 @@
+---PSQL ELSŐ ÓRA---
+
+1. Hello World!
+
+begin
+dbms_output.put_line('HELLO WORLD');
+end;
+
+VIEW -> DBMS OUTPUT -> MEGINT FUTTAT
+
+2. MINDEN SOR KIÍR CIKLUSSAL:
+
+begin
+for i in (select * from SZERELO.sz_auto)
+    loop
+        dbms_output.put_line(i.rendszam);
+    end loop;
+end;
+
+
