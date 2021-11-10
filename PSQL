@@ -1,6 +1,6 @@
 ---PSQL ELSŐ ÓRA---
 
-1. Hello World!
+1. HELLO WORLD!------------------------------------------------------------------------
 
 begin
 dbms_output.put_line('HELLO WORLD');
@@ -8,7 +8,7 @@ end;
 
 VIEW -> DBMS OUTPUT -> MEGINT FUTTAT
 
-2. MINDEN SOR KIÍR CIKLUSSAL:
+2. MINDEN SOR KIÍR CIKLUSSAL:-------------------------------------------------------
 
 begin
 for i in (select * from SZERELO.sz_auto)
@@ -16,5 +16,135 @@ for i in (select * from SZERELO.sz_auto)
         dbms_output.put_line(i.rendszam);
     end loop;
 end;
+
+3. WHILE CIKLUS---------------------------------------------------------------------
+
+declare
+    i pls_integer:=1;
+begin
+while 10>i
+    loop
+        dbms_output.put_line(i);
+        i:=i+i;
+    end loop;
+end;
+
+//EZ UGYANAZ, CSAK ELVILEG SZEBB/JOBB
+
+declare
+    i pls_integer:=-1;
+begin
+    loop
+        dbms_output.put_line(i);
+        i:=i+1;
+        exit when i>=10;
+    end loop;
+end;
+
+4. KURZOR FOR CIKLUS-----------------------------------------------------------------
+//Kiírja az országok nevét a listába
+
+begin
+for i in (select * from OLIMPIA.o_orszagok)
+    loop
+        dbms_output.put_line(i.orszag);
+    end loop;
+end;
+
+5. ELÁGAZÁSOK--------------------------------------------------------------------------
+
+begin
+for i in (select * from OLIMPIA.o_orszagok)
+    loop
+        if i.foldresz='Európa'
+            then dbms_output.put_line(i.orszag);
+            elsif i.foldresz='Afrika'
+                then dbms_output.put_line('Afrika'||' '||i.orszag);
+            elsif i.terulet>10000
+                then dbms_output.put_line('Nem európai ország'||' '||i.orszag||' '||i.terulet);
+            else dbms_output.put_line('Nem európai ország');
+        end if;
+    end loop;
+end;
+
+6. UGYANEZ, CSAK BESZÚRÁSSAL--------------------------------------------------------------
+
+begin
+for i in (select * from OLIMPIA.o_orszagok)
+    loop
+        if i.foldresz='Európa'
+            then insert into eu_orszagok values (i.orszag);
+            elsif i.foldresz='Afrika'
+                then insert into afrikai_orszagok values (i.orszag);
+            elsif i.terulet>10000
+                then dbms_output.put_line('Nem európai ország'||' '||i.orszag||' '||i.terulet);
+            else dbms_output.put_line('Nem európai ország');
+        end if;
+    end loop;
+commit;
+end;
+
+7. DELETE----------------------------------------------------------------------------
+
+begin
+delete from eu_orszagok;
+delete from afrikai_orszagok;
+for i in (select * from OLIMPIA.o_orszagok)
+    loop
+        if i.foldresz='Európa'
+            then insert into eu_orszagok values (i.orszag);
+            elsif i.foldresz='Afrika'
+                then insert into afrikai_orszagok values (i.orszag);
+            elsif i.terulet>10000
+                then dbms_output.put_line('Nem európai ország'||' '||i.orszag||' '||i.terulet);
+            else dbms_output.put_line('Nem európai ország');
+        end if;
+    end loop;
+commit;
+end;
+
+8. ALPROGRAMOK-------------------------------------------------------------------
+
+-FÜGGVÉNY (function)
+
+    //Másold ki az órai anyagból, mert lemaradtál
+    
+-ELJÁRÁS (procedure)
+
+    declare
+    procedure proc_autok(p_szin szerelo.sz_auto.szin%type) is
+    begin
+    for i in (select * from SZERELO.sz_auto
+              where szin=p_szin)
+        loop
+            dbms_output.put_line(i.rendszam);
+        end loop;
+    end;
+
+begin
+proc_autok('piros');
+end;
+    
+9. TÁROLT FÜGGVÉNY/ELJÁRÁS-------------------------------------------------------   
+
+//rövid dbms_output.putline();
+create or replace procedure dopl(p varchar2) is
+begin
+dbms_output.put_line(p);
+end;
+
+//szorzás
+create or replace function func_multiply(p_a number, p_b number) return number is
+begin
+return p_a*p_b;
+end;
+
+// hívható sql-ből is
+select func_multiply(5,2)
+from dual;
+
+10. OUT -> belül kap értéket
+
+
 
 
