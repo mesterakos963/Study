@@ -145,6 +145,146 @@ from dual;
 
 10. OUT -> belül kap értéket
 
+11. KIVÉTELKEZELÉS--------------------------------------------------------------------
+
+//neten megkeresni a kivétel számát és azt írni az exception után
+
+begin
+dopl(1/0);
+exception
+    when zero_divide
+    then dopl('0-val osztottunk');
+end;
+
+//or-ral lehet több kivételt adni
+
+begin
+dopl(1/0);
+exception
+    when zero_divide or value_error
+    then dopl('0-val osztottunk');
+end;
+
+//when others - minden másat lekezel 
+
+begin
+dopl(1/0);
+exception
+    when zero_divide or value_error
+    then dopl('0-val osztottunk');
+    when others
+    then dopl('HIBA');
+end;
+
+12. NEM BEÉPÍTETT--------------------------------------------------------------------------
+
+declare
+    ex exception;
+    pragma exception_init(ex, -1400);
+    ex2 exception;
+    pragma exception_init(ex, -1438);
+begin
+insert into szamok values (100);
+exception
+    when ex
+    then dopl('Nem lehet null');
+    when ex2
+    then dopl('Túl hosszú szám');
+end;
+
+13. KIVÉTEL ELDOBÁS---------------------------------------------------------------------
+
+//create or replace procedure proc_kiv is
+begin
+raise_application_error(-20005, 'Saját hibaüzenet');
+/* -20000....20999 lehet */
+end;
+
+14. SELECT INTO--------------------------------------------------------------------------------------
+declare
+    v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from KONYVTAR.tag
+where keresztnev='nincs';
+dopl(v.vezeteknev||' '||v.keresztnev);
+exception
+    when no_data_found
+    then dopl('Nincs ilyen név');
+    when too_many_rows
+    then dopl('Túl sok ilyen név van');
+end;
+
+FELADAT:---------------------------------------------------------------------------------------------
+    Írjunk tárolt függvényt, amely paraméterként kapott tulajdonos névhez visszaadja a tulaj azon-t;
+    Ha nincs ilyen név, akkor null értéket ad vissza.
+    Ha túl sok ilyen név van, akkor felhasználói kivételt dob.
+    
+    Hívjuk meg a függvényt
+    
+create or replace function f_tulaj2(
+    p_nev szerelo.sz_tulajdonos.nev%type)
+    return szerelo.sz_tulajdonos.azon%type is
+    v_tulaj_azon szerelo.sz_tulajdonos.azon%type;
+begin
+select azon
+into v_tulaj_azon
+from szerelo.sz_tulajdonos
+where nev=p_nev;
+return v_tulaj_azon;
+exception
+    when no_data_found then return null;
+    when too_many_rows
+    then raise_application_error
+        (-20001, 'Sok ilyen tulaj van');
+end;
+    
+15. NATÍV DINAMIKUS SQL------------------------------------------------------------------------------
+//execute immediate 'STRING' -> amit ezután írok, az stringként lefut
+
+begin
+execute immediate 'create table szamok2 (sz number(2))';
+end;
+
+begin
+for i in 1..10
+loop
+execute immediate 'create table szamok1'||i||' (sz number(2))';
+end loop;
+end;
+
+create or replace procedure
+    proc_szam_insert(p_tabla number, p_ertek number) is
+    begin
+    execute immediate
+    'insert into szamok1'||p_tabla||
+    'values ('||p_ertek||')';
+    
+    end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
