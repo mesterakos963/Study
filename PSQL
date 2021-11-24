@@ -263,6 +263,136 @@ create or replace procedure
     
     end;
 
+16. TRIGGEREK-------------------------------------------------------------------------------------
+
+- Nem enged olyan szerelést felvenni vagy módosítani, ahol a szerelés munkavégzésének az ára
+  több, mint az autó első vásárlási árának a 10%-a. Dobjon kivételt ezekben az esetekben!
+
+create or replace trigger tr_szereles
+before insert or update of munkavegzes_ara on sz_szereles
+for each row
+
+declare v_eva szerelo.sz_auto.elso_vasarlasi_ar%type;
+    
+begin
+select elso_vasarlasi_ar*0.1
+into v_eva
+from szerelo.sz_auto
+where azon=:new.auto_azon;
+if :new.munkavegzes_ara>v_eva
+    then RAISE_APPLICATION_ERROR(-20003, 'Drága munkavégzés.');
+end if;
+end;
+//BEFORE/AFTER -> törlés előtt vagy után írjuk ki, ez a kérdés itt.
+//DISABLE-lel kell kikapcsolni, ha már nincs rá szükség a bal oldalsó sávban a "Triggers" alatt.
+
+TESZT:
+insert into sz_szereles (auto_azon, muhely_azon, szereles_kezdete,
+                        szereles_vege, munkavegzes_ara)
+values (101, 103, sysdate, null, 100000000);
+rollback;
+
+- Írjunk triggert, amely akkor indul el, amikor az autó táblából törlünk!
+A triggerk írja képernyőre az autó azonosítóját, rendszámát és típusát!
+
+create or replace trigger tr_auto
+after delete on sz_auto
+for each row
+
+declare 
+    v_tipus szerelo.sz_autotipus.megnevezes%type;
+    v_marka szerelo.sz_autotipus.marka%type;
+
+begin
+    begin
+        select megnevezes, marka
+        into v_tipus, v_marka
+        from szerelo.sz_autotipus
+        where azon=:old.tipus_azon;
+        exception when no_data_found then null; 
+    end;
+dbms_output.put_line(:old.azon||' '||:old.rendszam||' '||v_tipus||' '||v_marka);
+end;
+
+TESZT:
+delete sz_auto
+where szin='piros'
+
+- Írjunk triggert, amely az autó táblán történő bármilyen módosítás (INSERT, UPDATE, DELETE)
+naplózza egy táblába.
+
+NAPLO TÁBLA:
+create table sz_auto_naplo
+(utasitas varchar2(10), 
+regi_azon number(5),
+uj_azon varchar2(20),
+regi_rendszam varchar2(10),
+uj_rendszam varchar2(10),
+regi_szin varchar2(20),
+uj_szin varchar2(20),
+datum date);
+
+TRIGGER:
+create or replace trigger tr_auto_naplo
+after insert or update or delete on sz_auto
+for each row
+declare
+    v_ut varchar2(10);
+begin
+if inserting then v_ut:='insert';
+elsif updating then v_ut:='update';
+elsif deleting then v_ut:='delete';
+end if;
+insert into sz_auto_naplo(utasitas,regi_azon,uj_azon,
+regi_rendszam,uj_rendszam,regi_szin,uj_szin,datum)
+values (v_ut,:old.azon, :new.azon, :old.rendszam, :new.rendszam,
+:old.szin, :new.szin, sysdate);
+end;
+
+TESZT:
+delete sz_auto
+where szin='szürke';
+
+select *
+from sz_auto_naplo;
+
+- Írjunk triggert, amely megakadályozza, hogy az auto_naplo táblából töröljünk vagy
+  módosítsunk rajta.
+
+TRIGGER:
+create or replace trigger tr_auto_naplo_del
+before update or delete on sz_auto_naplo
+begin
+raise_application_error(-20002, 'Nem lehet törölni, módosítani a napló táblát');
+end;
+
+//Nem kell for each row, mert nem kell soronként tudni vagy mi (utasításszintű)
+
+TESZT:
+delete sz_auto_naplo;
+
+- TRIGGER MEG TUDJA VÁLTOZTATNI A BESZÚRANDÓ ÉRTÉKET
+
+TÁBLA:
+create table gyumi
+(nev varchar2(40));
+
+TRIGGER:
+create or replace trigger tr_gyumi
+before insert on gyumi
+for each row
+begin
+    :new.nev:=:new.nev||' fa';
+end;
+
+TESZT:
+insert into gyumi(nev)
+values ('szőlő');
+
+select *
+from gyumi;
+
+//TÖBBI AZ ELEARNINGEN, LUSTA VOLTAM ÍRNI MÁR
 
 
 
@@ -271,6 +401,23 @@ create or replace procedure
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+négyhúsz
 
 
 
