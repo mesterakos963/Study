@@ -313,8 +313,156 @@ where datum=(select max(datum)
         where af.auto_azon=baf.auto_azon)
 rollback;
 
+----------------------------------------------------------------------------------------------------------
+-----------------------------------------------GYAKORLÁS--------------------------------------------------
+----------------------------------------------------------------------------------------------------------
 
+1. FELADAT:
+Írjunk tárolt függvényt, amely paraméterül kapott könyvcímhez visszaadja a könyv azonosítóját, és
+listázza a képernyőre a könyvhöz tartozó könyvtári könyveket.
+Ha nincs ilyen könyv, akkor felhasználói kivételt dob "Nincs ilyen könyv" üzenettel.
+Ha több ilyen könyv van, akkor a listázás mindkét könyvre történjen meg, majd dobjon felhasználói kivételt
+"Több ilyen könyv" üzenettel.
 
+Hívjuk meg a függvényt
+- létező könyvre
+- nem létező könyvre
+- olyan könyvre, amiből 2 van
+- a sci-fi témájú könyvekre.
+
+#GEBASZOS
+
+create or replace function f_konyv(p_cim konyvtar.konyv.cim%type)
+    return konyvtar.konyv.konyv_azon%type is
+        begin 
+            select konyv_azon
+            into v_konyv_azon
+            from konyvtar.konyv
+            where cim=p_cim;
+            
+            for i in (select leltari_szam from konyvtar.konyvtari_konyv
+                        where konyv_azon=v_konyv_azon)
+                loop
+                    dopl(i.leltari_szam);
+                end loop;
+                return konyv_azon;
+            exception
+                when no_data_found
+                then raise_application_error(-20005, 'Nincs ilyen konyv');
+                when too_many_rows
+                then for i in (select leltari_szam, konyv_azon
+                                from konyvtar.konyvtari_konyv
+                                where konyv_azon in (select konyvazon
+                                                        from konyvtar.konyv
+                                                        where cim=p_cim))
+                                loop
+                                    dopl(i.leltari_szam||' '||i.konyv_azon);
+                                end loop;
+                                raise_application_error(-20004, 'Tobb ilyen konyv van');
+        end;
+        
+  HÍVÁS
+  
+  declare
+    ex_sk exception;
+    pragma exception_init(ex_sk, -20004);
+  
+  begin 
+    dopl(f_konyv('Tűzvarázs'));
+    begin
+      dopl(f_konyv('Napóleon'));
+      exception
+        when ex_sk
+        then dopl(sqlerrm);
+     end;
+     dopl(f_konyv('Nincs'));
+  end;
+  
+  
+2. FELADAT
+Írjunk blokkot, amely tartalmaz egy eljárást, amely paraméterként egy könyv azonosítót kap és 
+kimenő paraméterekben visszaadja hogy a könyvnek hány szerzője van, a könyvhöz hány példány tártorik és
+hány példánynak kevesebb az értéke, mint a könyv ára.
+
+A blokk hívja meg az összes könyvre az eljárást, a kapott eredményeket szúrja be egy táblába,
+amelyet a blokk a futása elején kiürít.
+
+create table konyvek
+(konyv_azon number(10),
+cim varchar2(200), 
+szerzo_db number (5), 
+peldany_db number (5),
+olcso_db number (5));
+
+declare
+    v_szerzo_db number(5);
+    v_peldany_db number(5);
+    v_olcso_db number(5);
+
+    procedure prl(p_konyv_azon konyvtar.konyv.konyv_azon%type,
+                    p_szerzo_db out number, 
+                    p_peldany_db out number,
+                    p_olcso_db out number) is
+        begin
+            select count(szerzo_azon)
+            into p_szerzo_db
+            from konyvtar.konyvszerzo
+            where konyv_azon=p_konyv_azon;
+            select count(leltari_szam)
+            into p_peldany_db
+            from konyvtar.konyvtari_konyv
+            where konyv_azon=p_konyv_azon;
+            select count(leltari_szam)
+            into p_olcso_db
+            from konyvtar.konyv ko inner join konyvtar.konyvtari_konyv kk
+            on ko.konyv_azon=kk.konyv_azon
+            where ko.konyv_azon=p_konyv_azon
+            and ko.ar>kk.ertek;
+        end;
+begin
+    for i in (select konyv_azon, cim from konyvtar.konyv)
+        loop
+            prl(i.konyv_azon, v_szerzo_db, v_peldany_db, v_olcso_db);
+            insert into konyvek(konyv_azon, cim, szerzo_db, peldany_db ,olcso_db)
+            values (i.konyv_azon, i.cim, v_szerzo_db, v_peldany_db, v_olcso_db);
+        end loop;
+commit;
+end;
+
+3. FELADAT
+
+Szúrjuk be az összes könyv azonosítóját és címét a könyvek táblába.
+
+insert into konyvek(konyv_azon, cim)
+select konyv_azon, cim
+from konyvtar.konyv;
+
+4. FELADAT
+
+Írjon blokkot, amely módosítja a konyvek táblát, minden könyvhöz felveszi,
+hogy a könyvet hányszor kölcsönözték, mikor kölcsönözték utoljára
+(és ki kölcsönözte utoljára).
+
+declare
+    v_db number(5);
+    v_ut_kolcs date;
+
+begin
+    for i in (select * from konyvek)
+    loop
+        select count(kolcsonzesi_datum)
+        into v_db, v_ut_kolcs
+        from konyvtar.kolcsonzes ko inner join
+        konyvtar.konyvtari_konyv kk
+        on ko.leltari_szam=kk.leltari_szam
+        and kk.konyv_azon=i.konyv_azon;
+        
+        update konyvek
+        set kolcs_db=v_db,
+        ut_kolcs=v_ut_kolcs
+        where konyv_azon=i.konyv_azon;
+    end loop;
+end;
 
 
 
