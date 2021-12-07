@@ -1,0 +1,3045 @@
+ELSŐ LÉPÉSEK:----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+A PL/SQL-lel adatbázisban tudunk programokat írni. 
+Az ereje a tárolt objektumokban van, mert ezeket meg lehet hívni pl. egy Java kódból, 
+vagy egy webes alkalmaz�sb�l. 
+
+A legegyszer�bb futtat�si egys�ge a blokk:
+
+begin
+null;
+end;
+/
+
+Ez a blokk nem csin�l semmmit, de valahonnan el kell indulnunk. 
+Futtatni k�t javaslatom van:
+- nyitnak egy �j ablakot az SQLDeeveloperben: tools, SQLWorksheet �s onnan futtatj�k.
+- vagy kijel�lik itt a sz�vegben
+Mindk�t esetben a Run script(F5) gombbal javaslom, b�r a run statement is lefuttatja. (Az ablak felett a z�ld nyilas ikonok :))
+
+A blokk v�g�n a / jelet az SQLDeveloper nem v�rja, an�lk�l is fut. 
+Azonban ha egy SQLPlusban futtatn�nk, akkor a / jel n�lk�l nem futna le. 
+A megoldas_feltolt bead� rendszer is v�rni fogja, an�lk�l nem j�nnek fel a feladatok.
+
+A k�vetkez� alapvet� dolog, hogy a PL/SQL-ben nincs igazi input �s output eszk�z. 
+Az "input" a t�bla tartalom lesz, vagy a t�rolt elj�r�sok param�terei, 
+az "output"-ot hasonl�an lehet megoldani.
+Outputb�l van m�g egy eszk�z, de ez ink�bb a programoz�t seg�ti: 
+a dbms_output csomag, azon bel�l a put_line elj�r�st fogjuk haszn�lni.
+
+begin
+dbms_output.put_line('Az �let sz�p');
+end;
+
+Ha lefuttatj�k, azt mondja, hogy a blokk sikeresen lefutott, �s nem l�tj�k az eredm�nyt.
+Az output �gy lesz l�that�, hogy az SQLDeveloperben a View men�ben r�kattintanak a DBMS Output gombra, 
+akkor megjelenik egy ablak, ott r�kattintanak a z�ld plusz gombra, be�ll�tj�k a kapcsolatot. 
+Majd m�g egyszer futtatj�k a blokkot. 
+
+A PL/SQL-ben haszn�lhatuk If utas�t�st, case utas�t�st, mindenf�le ciklusokat: for, while, v�gtelen ciklus.
+Mindenki tanult programozni, hasonl� eszk�z�k, mint amit eddig tanultak.
+
+�s declare ut�n lehet v�ltoz� deklar�lni.
+P�r p�lda:
+
+begin
+for i in 1..10 
+loop
+dbms_output.put_line(i);
+end loop;
+end;
+
+(nem kellett az i-t deklar�ni, a for ciklus megteszi helyett�nk).
+
+
+declare
+v number(5):=20;
+v2 number(10);
+begin
+if v>v2 
+  then dbms_output.put_line('nagyobb');
+  elsif v2 is null
+    then dbms_output.put_line('a v2 null');
+  else 
+  dbms_output.put_line('nem nagyobb');
+end if;
+end;
+
+(a pl/sql minden utas�t�s�t end utas�t�ssal szereti z�rni.)
+(Pr�b�lj�k ki mindenf�le m�s sz�mmal is)
+(A p�ld�ban van �rt�kad�s is)
+
+declare 
+ i pls_integer;
+begin
+i:=1;
+while i<10
+loop
+ dbms_output.put_line('i');
+ i:=i+1;
+end loop;
+end;
+
+(A pls_integer csak PL/SQL-ben, SQL-ben nincs. Az ilyen t�pus� v�ltoz� eg�sz sz�mokat t�rol. 
+Pl. ciklusv�ltoz�nak szeretj�k haszn�lni.)
+
+declare 
+ i pls_integer:=1;
+begin
+loop
+ dbms_output.put_line('i');
+ i:=i+1;
+ exit when i>=10;
+end loop;
+end;
+
+A v�gtelen ciklusb�l exittel szeret�nk kil�pni, hogy az�rt m�gse legyen v�gtelen.
+
+A PL/SQL blokkba DML utas�t�sokat (insert, update, delete) b�ntetlen�l �rhatunk. (select-et nem).
+
+begin
+delete szamok;
+end;
+
+(A szamok egy t�bla n�lam, hozz�k l�tre, ha futtatni akarj�k. :))
+
+KURZOR FOR CIKLUS--------------------------------------------------------------------------
+
+A select feldolgoz�s�nak az egyik legegyszer�bb m�dja.
+
+begin
+for i in (select * from SZERELO.sz_auto)
+loop
+  dbms_output.put_line(i.rendszam||' '||i.azon);
+end loop;
+end;
+
+Teh�t az i-t a select deklar�lja, m�gpedig a select eredm�ny��l kapott sort�pusnak, azaz rekordt�pus, 
+aminek a mez�i megegyeznek a select eredm�ny�ben l�v� mez�kkel. 
+Ez�rt haszn�ltam az i.rendszam-ot.
+A || �sszef�z�s, ha m�r elfelejtett�k, tettem a k�t mez� k�z� egy sz�k�zt.
+�s a blokk ki�rja a select-b�l visszakapott �sszes sort a k�perny�re.
+
+Ugyanez a blokk �gy is kin�zhet:
+declare
+cursor cur is select * from SZERELO.sz_auto;
+begin
+for i in cur
+loop
+  dbms_output.put_line(i.rendszam||' '||i.azon);
+end loop;
+end;
+
+�gy deklar�ltuk a kurzort, �s azt j�rjuk be. 
+(Megl�tjuk, hogy a kurzor t�m�ba lesz-e id�nk jobban belev�gni. 
+�n most �gy l�tom, hogy nem.)
+
+ALPROGRAMOK---------------------------------------------------------------------------------
+
+K�tf�le alprogramr�l besz�l a PL/SQL: f�ggv�ny �s elj�r�s. 
+Az elj�r�st egy m�velet v�grehajt�s�ra haszn�ljuk, a f�ggv�ny valamilyen �rt�ket ad vissza.
+
+declare
+ c number(2);
+ procedure kiir(p_a number) is
+  b varchar2(20):=p_a;
+  begin
+   dbms_output.put_line(b);
+  end;
+ 
+ function kettoz(p_f number) return number is
+  a number(1):=2;
+  begin
+   return p_f*2;
+  end;
+  
+begin
+ kiir(5);
+ c:=kettoz(5);
+ dbms_output.put_line(c);
+end;
+  
+TÁROLT ALPROGRAMOK--------------------------------------------------------------------------
+
+Az alprogramokat adatb�zis objektumk�nt l�tre lehet hozni.
+
+create or replace procedure proc_elso(p number) is
+begin
+for i in 1..p 
+loop
+ dbms_output.put_line(i);
+end loop;
+end;
+
+Ha ezt lefuttatjuk, akkor azt mondja a rendszer, hogy az elj�r�s k�szen van.
+Na de hol? 
+Az SQLDeveloperben bal oldalt van a fa, ott a procedure-k k�z�tt keresse. 
+Lehet, hogy a friss�t�s (k�k nyilak egym�st kergetik :)) gombot haszn�lni kell.
+
+Ez a t�rolt elj�r�s ottmarad, azaz am�g el nem dobja ott lesz.
+Eldobni �gy lehet, de most ne dobja el, mert haszn�ln�nk:
+drop procedure proc_elso;
+
+
+Haszn�lata:
+
+begin
+  proc_elso(4);
+end;
+
+
+F�ggv�ny
+
+create or replace function f_elso(p_a number, p_b number) return number is
+begin
+return p_a+p_b;
+end;
+
+
+Ezt a functionok k�z�tt keresse az SQLDeveloperben.
+
+Haszn�lata:
+
+begin
+dbms_output.put_line(f_elso(2,3));
+end;
+
+KIVÉTELKEZELÉS-----------------------------------------------------------------------------
+
+Futtassuk le:;
+declare 
+v number(5);
+begin
+v:=1/0;
+end;
+
+El�g egy�rtelm�, hogy a 0-val val� oszt�s miatt hib�t ad, �s ez most egy kiv�tel.
+
+A kiv�teleket el lehet kapni. Ez egy olyan kiv�tel, aminek van neve. 
+A nev�t �gy tal�ljuk meg, hogy megn�zz�k a kiv�tel k�dj�t: ORA-01476,
+�s megkeress�k a doksiban (ha el�g sokat gyakorolnak, a legfontosabbakat �gyis megtanulj�k :)) 
+(https://docs.oracle.com/database/121/TTPLS/exceptions.htm#TTPLS199),
+vagy a slide-okon, hogy ez a zero_divide kiv�tel. Akkor kapjuk el.;
+
+declare 
+v number(5);
+begin
+v:=1/0;
+exception when zero_divide
+ then dopl('0-val val� oszt�s');
+end;
+
+A DOPL? meg�rta az el�z� feladatsor egyik�ben.
+Az output-hoz ne felejtse el bekacsolni a DBMS outputot (a view men�ben, ut�na a z�ld +-szal).
+
+
+Vannak olyan kiv�telek, amelyeknek nincs nev�k. De az�rt el tudjuk �ket kapni.;
+
+drop table szamok;
+create table szamok
+(sz number(10,2) not null);
+
+begin
+insert into szamok (sz) values (null);
+end;
+
+
+A blokk eldobta az ora-01400-es kiv�telt, nem lehet ide null �rt�ket besz�rni.
+Levessz�k az ora-t az elej�r�l, marad -01400, de ez egy sz�m, ez�rt -1400. Ezt fogjuk haszn�lni:;
+declare
+ex exception;
+pragma exception_init(ex, -1400);
+begin
+insert into szamok (sz) values (null);
+exception when ex then dopl('Null �rt�k volt');
+end;
+
+A PL/SQL nagyon szeret hib�t dobni. Mert az is egy kommunik�ci�, hogy hiba t�rt�nt. Nincs azzal semmi baj.
+Van egy olyan utas�t�s, amely hibak�ddal �s �zenettel dob hib�t. Mindkett�t mi v�lasztjuk. 
+A hibak�d -20000 �s -20999 k�z�tt lehet. 
+
+begin
+raise_application_error(-20001, 'ez egy kiv�tel');
+end;
+
+�s a pragm�val ezt is el lehet kapni.
+
+declare
+ex exception;
+pragma exception_init(ex, -20001);
+
+  procedure kiv is
+  begin
+  raise_application_error(-20001, 'ez egy kiv�tel');
+  end;
+
+begin
+kiv;
+exception 
+  when ex then dopl(sqlcode||' '||sqlerrm);
+end;
+
+Az sqlcode visszaadja a kiv�tel k�dj�t, a sqlerrm visszaadja a kiv�tel �zenet�t.
+Ha az elj�r�s kiv�telt dobott, �s nem kezelte, akkor a h�v� oldalhoz ker�l, aki kezelheti vagy nem. 
+
+Kiv�telt kezelni egy blokk kiv�tel kezel� r�sz�ben tudunk. Blokkot b�rhov� be�gyazhatunk.
+
+begin
+delete from szamok;
+for i in (select elso_vasarlasi_Ar from szerelo.sz_Auto order by 1 nulls last)
+loop
+ insert into szamok (sz) values (i.elso_vasarlasi_ar);
+end loop;
+end;
+
+select * from szamok;
+
+Kiv�telt kaptam.
+�res a t�bl�m, pedig a null �rt�kek a v�g�n j�ttek.
+�rjem el, hogy a nem null �rt�kek beker�ljenek a t�bl�ba 
+(persze tudom, lehetne select-tel, de akkor nincs �j dolog).;
+
+begin
+delete from szamok;
+for i in (select elso_vasarlasi_Ar from szerelo.sz_Auto order by 1 nulls last)
+loop
+  declare
+    ex exception;
+    pragma exception_init(ex, -1400);
+  begin
+    insert into szamok (sz) values (i.elso_vasarlasi_ar);
+  exception when ex then null;
+  end;
+end loop;
+end;
+
+select * from szamok;
+
+SELECT INTO---------------------------------------------------------------------------------
+
+;Egy sort tud lek�rdezni az adatb�zisb�l. 
+Nagyon j� arra, hogy lek�rj�k pl. egy max �rt�ket, vagy megvizsg�ljuk, hogy egy sor l�tezik-e az adatb�zisban.
+;
+
+A %rowtype a v�ltoz�t az adott sor rekordja szerint deklar�lja. Nem kell tudnom, hogy milyen oszlopai 
+vannak a t�bl�nak, majd � tudja. 
+(Ha nem m�k�dik az az�rt van, mert nem l�tja a m�sik s�m�t. A saj�t aut� t�bl�nkra fog menni.);
+
+
+declare
+  s szerelo.sz_auto%rowtype;
+begin
+select *
+into s
+from szerelo.sz_auto
+where elso_vasarlasi_ar=(select max(elso_vasarlasi_ar) from szerelo.sz_auto);
+dopl(s.rendszam||' '||s.szin);
+end;
+
+
+Ha nem tal�l megfelel� sort, akkor no_data_found kiv�telt dob.
+Ha t�bb sorral t�rne vissza a select, akkor too_many_rows kiv�telt dob.
+
+declare
+  function legdragabb_auto(p_szin szerelo.sz_auto.szin%type) return szerelo.sz_auto.rendszam%type is
+    s szerelo.sz_auto.rendszam%type;
+  begin
+    select rendszam
+    into s
+    from szerelo.sz_auto
+    where szin=p_szin and 
+    elso_vasarlasi_ar=(select max(elso_vasarlasi_ar) 
+                       from szerelo.sz_auto
+                       where szin=p_szin);
+    return s;
+    exception 
+      when no_data_found then return null;
+      when too_many_rows then raise_application_error(-20002,'T�l sok ilyen sor van.');
+    end;
+
+begin
+dopl(legdragabb_auto('piros'));
+end;
+
+NATIV DINAMIKUS SQL------------------------------------------------------------------------
+
+Hogyan lehet create utas�t�st futtatni SQL-b�l?
+Nat�v dinamikus SQL-lel:;
+
+begin
+execute immediate 'create table szamok2 (sz number(10,2))';
+end;
+
+Insert, update, delete-et is futtathatunk vele. 
+S�t a select futtat�s�nak is megvan a m�dja, de ebbe most nem megy�nk bele.
+
+Vegy�k �szre, hogy egy sztringet futtatunk. A sztringet el� is �ll�thatjuk �sszef�z�ssel.
+
+TRIGGEREK----------------------------------------------------------------------------------
+
+A trigger valamilyen esem�ny hat�s�ra lefut� utas�t�ssorozat (blokk). 
+Az esem�ny lehet DML utas�t�s vagy DDL utas�t�s vagy adatb�zisbeli esem�ny. 
+Mi a DML utas�t�s hat�s�ra lefut� triggerekkel foglalkoznunk.
+
+A DML trigger egy t�bl�hoz vagy n�zethez k�t�dik.
+El�sz�r n�zz�k a t�bl�hoz k�thet�eket.
+
+drop table szamok;
+create table szamok (sz number(10));
+
+create or replace trigger tr_sz1 
+before insert or update or delete on szamok
+begin
+if inserting then dopl('�j sorok a sz�mok t�bl�ban');
+elsif updating then dopl('m�dos�tj�k a sz�mok t�bl�t');
+elsif deleting then dopl('t�rlik a sz�mok t�bl�t');
+end if;
+end;
+/
+
+Lefuttatni a triggert a megfelel� utas�t�ssal lehet:;
+
+delete from szamok;
+
+Ugyan a t�bla �res volt, a trigger m�gis lefutott.
+
+insert into szamok (sz) select salary from hr.employees;
+
+Ugyan rengeteg sort sz�rtunk a t�bl�ba, a trigger m�giscsak egyszer futott le.
+A fenti p�lda egy utas�t�sszint� trigger, azaz f�ggetlen�l att�l, 
+hogy h�ny sort �rint a v�ltoz�s, a trigger egyszer lefut.
+Meg lehet mondani, hogy BEFORE vagy AFTER lehet a trigger. 
+Ez sok esetben mindegy, 
+mindig a commit, rollback-hez szoktuk igaz�tani, hogy a rendszernek kevesebbet kelljen napl�znia. 
+Illetve lesz amikor, csak az egyik j�.
+
+A fenti p�ld�ban az inserting igazat ad vissza, ha a triggerben insert t�rt�nt. 
+�s hasonl� az updating �s a deleting is a megfelel� utas�t�ssal. 
+
+
+
+A sorszint� trigger annyiszor fut le, ah�ny sort �rint a v�ltoz�s, azaz ha 10 sort t�rl�nk, akkor 10-szer fut le:;
+Att�l lesz sorszint�, hogy bele�rjuk a for each row-t. 
+Ha sorszint� a trigger, akkor dolgozhatunk a v�ltoz�s el�tti �s ut�ni sorokkal 
+(:new �s :old a teljes sorokat fogja k�pviselni, azaz a t�bl�nak megfelel� rekord t�pus�ak).
+
+create or replace trigger tr_sz3 
+before update on szamok
+for each row
+begin
+dopl('r�gi:'||:old.sz);
+dopl('�j'||:new.sz);
+end;
+/
+
+
+update szamok set sz=sz*10 where sz>5000;
+
+N�zz�k meg a dbms_output-ot.
+
+A triggereket az SQL Developerben megtal�ljuk oldalt a f�ban. 
+Jobb eg�r gombbal kattinva rajta a disable megakad�lyozza, hogy fusson (de t�rolva marad); 
+m�g az enable �jra lehet�v� teszi, hogy fusson. 
+
+drop table szamok; 
+
+eset�n az �sszes r�vonatkoz� trigger is t�rl�sre ker�l.
+
+Szeretj�k a triggereket napl�z�sra haszn�lni:;
+
+drop table naplo;
+create table naplo 
+(regi_ertek number(10), 
+uj_ertek number(10), 
+datum date, 
+felhasznalo varchar2(30));
+
+create or replace trigger tr_sz2
+after delete or insert or update on szamok
+for each row
+begin
+insert into naplo (regi_ertek, uj_ertek, datum, felhasznalo)
+values (:old.sz, :new.sz, sysdate, user);
+end;
+/
+
+delete szamok;
+commit; 
+/*a commit term�szetesen a trigger insert-j�t is commitolja.*/
+select * from naplo;
+
+Szeretj�k a triggert haszn�lni arra, hogy egy utas�t�s ne futhasson le:;
+
+create or replace trigger tr_naplo
+after delete or update on naplo
+begin
+raise_application_error(-20002, 'Nem lehet t�r�lni a napl� t�bl�t');
+end;
+/
+
+delete naplo;
+
+Vagy egy �j �rt�ket automatikusan kit�lteni (fontos, hogy before trigger, csak akkor sz�rja be az �j �rt�ket):;
+
+alter table szamok add (sz2 number(12));
+
+create or replace trigger tr_sz4
+before update or insert on szamok
+for each row
+begin
+:new.sz2:=:new.sz*1000;
+end;
+/
+
+
+insert into szamok (sz) values (2020);
+select *
+from szamok
+where sz=2020;
+commit;
+
+
+Eldobni a triggert: ;
+
+drop trigger tr_sz4; 
+
+INSTEAD OF TRIGGER-------------------------------------------------------------------------
+
+N�zeten instead of triggert tudunk l�trehozni. Instead triggert n�zeten tudunk l�trehozni. 
+A trigger az utas�t�s helyett fog lefutni. 
+Csak sorszint� utas�t�s van, ak�r kitessz�k a for each row-t ak�r nem. 
+
+create view v_sz as select * from szamok;
+
+Sok esetben a n�zeten �rtelmezhet� az insert/update/delete (l�sd doksi mikor),
+m�s esetben a ford�t� ezt nem tudja �rtelmezni. 
+Ilyenkor van sz�ks�g az instead of triggerre, hogy megmondjuk, hogy az ilyen esetben mit is akarunk.
+
+insert into v_sz (sz) values (5);
+
+Ezt �rti, mert a n�zet tulajdonk�pp a t�bla szinon�m�ja.
+
+
+create table orszagok as select * from olimpia.o_orszagok;
+
+create view eur_orsz as select * from orszagok where foldresz='Eur�pa';
+
+insert into eur_orsz (azon, orszag) values (1000, 'Meseorsz�g');
+
+Ezt elfogadta. De n�zz�k meg, hogy a n�zet tartalmazza-e:
+
+select * from eur_orsz;
+Nem. �s a t�bla?
+
+select * from orszagok;
+Igen. Csak a n�zet felt�tel�nek nem felel meg. 
+
+Itt a megold�s:
+
+create or replace trigger tr_v_orsz
+instead of insert on eur_orsz
+begin
+insert into orszagok (azon, orszag, terulet, lakossag, fovaros, foldresz)
+values (:new.azon, :new.orszag, :new.terulet, :new.lakossag, :new.fovaros, 'Eur�pa');
+end;
+
+Pr�b�ljuk meg m�g egyszer:
+insert into eur_orsz (azon, orszag) values (1100, 'Csodaorsz�g');
+
+select * from eur_orsz;
+
+�s ott van. �s term�szetesen a t�bl�ban is. 
+
+1. ÓRA-------------------------------------------------------------------------------------
+
+begin
+dbms_output.put_line('Almafa');
+end;
+
+begin
+for i in 1..10 
+  loop
+    dbms_output.put_line('Almafa'||i);
+  end loop;
+end;
+
+declare 
+  i pls_integer:=1;
+begin
+while i<=10
+  loop
+    dbms_output.put_line('Almafa'||i);
+    i:=i+1;
+  end loop;
+end;
+
+
+declare 
+  i pls_integer:=1;
+begin
+
+  loop
+    dbms_output.put_line('Almafa'||i);
+    i:=i+1;
+
+  end loop;
+end;
+
+declare 
+  i pls_integer:=1;
+begin
+
+  loop
+    dbms_output.put_line('Almafa'||i);
+    i:=i+1;
+    exit;
+  end loop;
+end;
+
+
+declare 
+  i pls_integer:=1;
+begin
+
+  loop
+    dbms_output.put_line('Almafa'||i);
+    i:=i+1;
+    exit when i>10;
+  end loop;
+end;
+
+begin
+for i in (select * 
+          from szerelo.sz_auto
+          where szin='piros')
+  loop
+    dbms_output.put_line(i.rendszam||' '||i.azon);
+  end loop;
+end;
+
+begin
+for i in (select orszag, terulet, lakossag,
+            lakossag/terulet ns
+          from olimpia.o_orszagok
+          where terulet!=0)
+  loop
+    dbms_output.put_line(i.orszag||' '||i.ns);
+  end loop;
+end;
+
+begin
+for i in (select orszag, terulet, lakossag
+          from olimpia.o_orszagok)
+  loop
+    if i.terulet=0
+       then dbms_output.put_line(i.orszag);
+            dbms_output.put_line(i.lakossag);
+       else dbms_output.put_line(i.orszag||
+             ' '||i.lakossag/i.terulet);
+            dbms_output.put_line('hehe');
+    end if;
+  end loop;
+end;
+
+begin
+for i in (select orszag, terulet, lakossag
+          from olimpia.o_orszagok)
+  loop
+    if i.terulet>=1000
+       then dbms_output.put_line(i.terulet);
+    end if;
+    dbms_output.put_line(i.orszag);
+  end loop;
+end;
+
+begin
+for i in (select orszag, terulet, lakossag
+          from olimpia.o_orszagok)
+  loop
+  dbms_output.put_line(i.terulet);
+    if i.terulet<=1000
+       then dbms_output.put_line('1000 alatt');
+     elsif i.terulet<=10000
+       then dbms_output.put_line('1000 �s 10000 k�z�tt');
+     elsif i.terulet<=100000
+       then dbms_output.put_line('10000 �s 100000 k�z�tt');
+     else dbms_output.put_line('Sz�zezer felett');
+    end if;
+    dbms_output.put_line(i.orszag);
+  end loop;
+end;
+
+begin
+null;
+end;
+
+begin
+delete szamok;
+commit;
+end;
+
+declare 
+  function duplaz(p number) return number is
+    begin
+      return p*2;
+    end;
+begin
+  dbms_output.put_line(duplaz(5));
+end;
+
+declare 
+v number(5):=3;
+  function duplaz(p number) return number is
+    begin
+      return p*2;
+    end;
+begin
+  dbms_output.put_line(duplaz(v));
+end;
+
+declare 
+v number(5):=3;
+  procedure duplaz(p number) is
+    begin
+      dbms_output.put_line(p*2);
+    end;
+begin
+  duplaz(v);
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p in number, p2 out number) is
+    begin
+      --p:=p+1;
+      dbms_output.put_line(nvl(to_char(p2),'null'));
+      dbms_output.put_line(p*2);
+      p2:=10;
+    end;
+begin
+  duplaz(v, v2);
+  dbms_output.put_line(v2);
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p in out number) is
+    begin
+      dbms_output.put_line(nvl(to_char(p),'null'));
+      p:=p+1;
+      dbms_output.put_line(p);
+    end;
+begin
+  duplaz(v);
+  dbms_output.put_line(v);
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p number:=2, p2 number:=10) is
+    begin
+      dbms_output.put_line(p*p2);
+    end;
+begin
+  duplaz;
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p number:=2, p2 number:=10) is
+    begin
+      dbms_output.put_line(p*p2);
+    end;
+begin
+  duplaz(30);
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p number:=2, p2 number:=10) is
+    begin
+      dbms_output.put_line(p*p2);
+    end;
+begin
+  duplaz(p2=>v, p=>40);
+end;
+
+declare 
+v number(5):=3;
+v2 number(5):=10;
+  procedure duplaz(p number:=2, 
+                   p2 number:=10,
+                   p3 number:=40) is
+    begin
+      dbms_output.put_line(p*p2/p3);
+    end;
+begin
+  duplaz(v, p3=>100, p2=>50);
+end;
+
+create or replace function hatvanyoz
+    (p1 number, 
+    p2 number:=2) return number is
+begin
+return p1**p2;
+end;
+
+create or replace procedure dopl(s varchar2) is
+begin
+  dbms_output.put_line(s);
+end;
+
+
+DECLARE
+  v1 NUMBER(5):=10;
+  v2 NUMBER(5):=5;
+BEGIN
+  dopl( HATVANYOZ(P1 => v1,P2 => v2  ));
+END;
+
+select HATVANYOZ(2,5)
+from dual;
+
+create or replace procedure proc_auto
+    (p_szin szerelo.sz_auto.szin%type) is
+begin
+for i in (select rendszam from szerelo.sz_auto
+          where szin=p_szin)
+  loop
+    dopl(i.rendszam);
+  end loop;
+end;
+
+begin
+proc_auto('piros');
+end;
+
+begin
+null;
+end;
+
+begin
+dbms_output.put_line('Almafa');
+end;
+
+begin
+for i in (select *
+          from szerelo.sz_auto)
+  loop          
+   dbms_output.put_line(i.rendszam);
+  end loop;
+end;
+
+begin
+for i in 1..10
+  loop          
+   dbms_output.put_line(i);
+  end loop;
+end;
+
+/*begin
+  loop          
+   dbms_output.put_line('Almafa');
+  end loop;
+end;*/
+
+begin
+null;
+end;
+/
+
+select * from dual;
+
+begin
+dbms_output.put_line('Almafa');
+end;
+
+begin
+for i in 1..10
+  loop
+  dbms_output.put_line(i||'Almafa');
+  end loop;
+end;
+
+declare 
+  i pls_integer:=1;
+begin
+  while i<=10
+      loop
+      dbms_output.put_line(i||'Almafa');
+      i:=i+1;
+      end loop;
+end;
+
+declare 
+  i pls_integer:=1;
+begin
+      loop
+      dbms_output.put_line(i||'Almafa');
+      i:=i+1;
+      exit when i>10;
+      end loop;
+end;
+
+begin
+for i in (select * from szerelo.sz_auto)
+      loop
+        dbms_output.put_line(i.rendszam);
+      end loop;
+end;
+
+
+begin
+for i in (select * from szerelo.sz_auto)
+      loop
+      if i.szin='piros'
+         then dbms_output.put_line(i.rendszam);
+      end if;
+      end loop;
+end;
+
+begin
+for i in (select * from szerelo.sz_auto)
+      loop
+      if i.szin='piros'
+         then dbms_output.put_line(i.rendszam);
+         else dbms_output.put_line('nem piros');
+      end if;
+      end loop;
+end;
+
+begin
+for i in (select * from szerelo.sz_auto)
+      loop
+      if i.szin='piros'
+         then dbms_output.put_line(i.rendszam);
+         elsif i.elso_vasarlasi_ar>1000000
+         then dbms_output.put_line('dr�ga nem piros');
+         elsif i.szin!='k�k'
+         then dbms_output.put_line('olcs� nem piros, nem k�k');
+         else dbms_output.put_line('olcs� k�k');
+      end if;
+      end loop;
+end;
+
+create or replace procedure dopl(p varchar2) is
+  begin
+   dbms_output.put_line(p);
+  end;
+  
+begin
+  dopl('Almafa');
+end;
+
+create or replace function duplaz(p number) return number is
+begin
+return p*2;
+end;
+
+begin
+dopl(duplaz(3));
+end;
+
+select duplaz(5) from dual;
+
+declare 
+   v number(5);
+   procedure szines_autok (p_szin szerelo.sz_auto.szin%type) is
+     begin
+       for i in (select * from szerelo.sz_auto
+                 where szin=p_szin)
+         loop 
+           dopl(i.rendszam);
+         end loop;
+     end;
+   function szoroz (p_a number, p_b number) return number is
+      begin
+      return p_a*p_b;
+      end;
+     
+begin
+szines_autok('k�k');
+v:=szoroz(5,3);
+dopl(v);
+end;
+
+declare 
+  procedure proba(p1 number, p2 in number) is
+    begin
+    dopl(p1||' '||p2);
+    
+    end;
+    
+begin
+  proba(5, 10);
+end;
+
+declare 
+  v number(2):=2;
+  procedure proba(p1 out number) is
+    begin
+    dopl(nvl(to_char(p1),'null'));
+    p1:=10;
+    end;
+    
+begin
+  proba(v);
+  dopl(v);
+end;
+
+declare 
+  v number(2):=2;
+  procedure proba(p1 in out number) is
+    begin
+    dopl(nvl(to_char(p1),'null'));
+    p1:=10;
+    end;
+    
+begin
+  proba(v);
+  dopl(v);
+end;
+
+
+declare 
+  v number(2);
+  v2 number(2);
+  procedure proba(p1 out number, p2 out number) is
+    begin
+    p1:=10;
+    p2:=0;
+    end;
+    
+begin
+  proba(v, v2);
+  dopl(v||' '||v2);
+end;
+
+declare 
+  procedure proba(p1 number:=10, p2 number:=2, p3 number:=1) is
+    begin
+    dopl(p1*p2*p3);
+    end;
+    
+begin
+  proba(20, 2,5);
+end;
+
+declare 
+  procedure proba(p1 number:=10, p2 number:=2, p3 number:=1) is
+    begin
+    dopl(p1*p2*p3);
+    end;
+    
+begin
+  proba(20);
+end;
+
+declare 
+  procedure proba(p1 number:=10, p2 number:=2, p3 number:=1) is
+    begin
+    dopl(p1*p2*p3);
+    end;
+    
+begin
+  proba(p3=>5, p2=>2);
+end;
+
+declare 
+  procedure proba(p1 number:=10, p2 number:=2, p3 number:=1) is
+    begin
+    dopl(p1*p2*p3);
+    end;
+    
+begin
+  proba(2, p3=>5);
+end;
+
+
+begin
+  delete szamok;
+  commit;
+end;
+
+
+2. ÓRA------------------------------------------------------------------------------------
+
+declare 
+   v szerelo.sz_auto%rowtype;
+begin
+select *
+into v
+from szerelo.sz_auto
+where rendszam='ORA025';
+dopl(v.rendszam||' '||v.szin||' '||v.azon);
+end;
+
+declare 
+   v szerelo.sz_auto%rowtype;
+begin
+select *
+into v
+from szerelo.sz_auto
+where rendszam='db';
+dopl(v.rendszam||' '||v.szin||' '||v.azon);
+exception
+  when no_data_found
+  then dopl('Nincs ilyen aut�');
+end;
+
+declare 
+   v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from konyvtar.tag
+where keresztnev='Ella';
+dopl(v.vezeteknev||' '||v.keresztnev||' '||v.olvasojegyszam);
+exception
+  when no_data_found
+  then dopl('Nincs ilyen tag');
+  when too_many_rows 
+  then dopl('T�bb ilyen n�v van');
+end;
+
+/*�rjunk t�rolt elj�r�st, amely adott m�rka �s t�pus n�vhez
+kilist�zza, hogy milyen rendsz�m� �s sz�n� aut�k tartoznak hozz�.
+A lista el�tt ki�rja a t�pus azonos�t�j�t. 
+Ha az adott m�rka �s t�pus nem l�tezik, 
+akkor felhaszn�l�i kiv�telt dobunk.
+
+Megh�vjuk az elj�r�st. */
+
+create or replace procedure proc_auto_tipushoz(
+      p_marka szerelo.sz_automarka.nev%type,
+      p_tipus szerelo.sz_autotipus.megnevezes%type) is
+  v_auto_tipus  szerelo.sz_autotipus.azon%type;
+begin
+select azon
+into v_auto_tipus
+from szerelo.sz_autotipus
+where marka=p_marka and megnevezes=p_tipus;
+dopl('A t�pus azonos�t�:'||v_auto_tipus);
+
+for i in (select *
+          from szerelo.sz_auto
+          where tipus_azon=v_auto_tipus)
+   loop
+   dopl(i.rendszam||' '||i.szin);
+   end loop;
+exception 
+  when no_data_found
+  then raise_application_error(
+        -20001, 'Nincs ilyen m�rka �s t�pus');
+end;
+
+begin
+proc_auto_tipushoz('Volswagen','Polo');
+end;
+
+begin
+proc_auto_tipushoz('Opel','Corsa');
+end;
+
+begin
+proc_auto_tipushoz('Opel','Astra');
+end;
+
+/*�rjon t�rolt f�ggv�nyt, amely
+param�terk�nt kap egy sz�nt �s 
+visszaadja, hogy h�ny adott sz�n� 
+aut� van a szerel� t�bl�ban.*/
+
+create or replace function f_auto_db(
+    p_szin szerelo.sz_auto.szin%type) return number is
+    v number(5);
+begin
+select count(*)
+into v
+from szerelo.sz_auto
+where szin=p_szin;
+return v;
+end;
+
+begin
+dopl(f_auto_db('hupilila'));
+end;
+
+/*�rjon t�rolt elj�r�st, amely param�terk�nt egy sz�nt kap,
+�s kimen� param�terben visszaadja, hogy 
+az adott sz�nhez h�ny k�l�nb�z� t�pus tartozik, 
+�s az adott sz�n� aut�k k�z�l 
+a legdr�g�bb els� v�s�rl�si �r�t.*/
+
+create or replace procedure proc_szin(
+   p_szin szerelo.sz_auto.szin%type,
+   p_tipus_szam out number, 
+   p_eva out szerelo.sz_auto.elso_vasarlasi_ar%type) is
+
+begin
+select count(distinct tipus_azon), max(elso_vasarlasi_ar)
+into p_tipus_szam, p_eva
+from szerelo.sz_auto
+where szin=p_szin;
+
+end;
+
+declare
+  v_tipus_szam number(5);
+  v_eva szerelo.sz_auto.elso_vasarlasi_ar%type;
+begin
+proc_szin('k�k', v_tipus_szam , v_eva);
+dopl(v_tipus_szam||' '||v_eva);
+end;
+
+begin
+execute immediate 'create table szamok10(sz number(5))';
+end;
+
+begin
+for i in 1..10
+  loop
+execute immediate 'create table szamok1'||i||
+      '(sz number(5))';
+end loop;
+end;
+
+create or replace procedure proc_insert_szamok(
+   p_tablanev varchar2, p_szam number) is
+begin
+execute immediate 'insert into '||p_tablanev||
+  ' values ('||p_szam||')';
+end;
+   
+begin
+proc_insert_szamok('szamok19',1000);
+commit;
+end;
+
+begin
+for i in 1..10 
+  loop
+    for j in 1..20
+    loop
+     proc_insert_szamok('szamok1'||i,j*10);
+     end loop;
+  end loop;     
+commit;
+end;
+
+begin
+for i in 
+(select *
+from user_tables
+where table_name like 'SZAMOK%')
+loop
+execute immediate 'drop table '||i.table_name;
+end loop;
+end;
+
+Hozzunk l�tre t�rolt f�ggv�nyt, amely 
+param�terk�nt egy tulajdonos azonos�t�j�t kapja 
+�s visszaadja a tulajdonos nev�t.
+ha nincs ilyen tulaj, akkor null �rt�ket ad vissza.
+
+create or replace function f_tulaj(
+    p_azon szerelo.sz_tulajdonos.azon%type)
+    return szerelo.sz_tulajdonos.nev%type is
+    v_nev szerelo.sz_tulajdonos.nev%type;
+begin
+select nev 
+into v_nev
+from szerelo.sz_tulajdonos
+where azon=p_azon;
+return v_nev;
+exception
+  when no_data_found
+  then return null;
+end;
+
+�rjunk t�rolt elj�r�st, amely 
+param�terk�nt egy aut� azonos�t�j�t kapja,
+�s k�perny�re list�zza d�tum szerint cs�kken� sorrendben 
+az aut� tulajdonosainak a nev�t, amelyhez haszn�lja  az
+f_tulaj nev� f�ggv�nyt. 
+
+create or replace procedure proc_tulajok(
+   p_auto_azon szerelo.sz_auto.azon%type) is
+begin
+  for i in (select tulaj_azon
+           from szerelo.sz_auto_tulajdonosa
+           where auto_azon=p_auto_azon
+           order by vasarlas_ideje desc)
+   loop
+    dopl(f_tulaj(i.tulaj_azon));
+   end loop;
+end;
+
+begin
+proc_tulajok(103);
+end;
+
+�rjunk t�rolt elj�r�st, 
+amely param�terk�nt kap egy auto_azonos�t�t
+�s kimen� param�terben visszaadja a 
+legels� fel�rt�kel�si d�tumot 
+�s a legnagyobb fel�rt�kel�si �rt�ket,
+de csak akkor, ha a legnagyobb fel�rt�kel�si �rt�k
+a legels� d�tumhoz tartozik.
+Egy�bk�nt felhaszn�l�i kiv�telt dobunk. 
+
+create or replace procedure proc_af(
+ p_auto_azon szerelo.sz_auto.azon%type,
+ p_datum out SZERELO.sz_autofelertekeles.datum%type,
+ p_ertek out SZERELO.sz_autofelertekeles.ertek%type) is
+v_min_datum SZERELO.sz_autofelertekeles.datum%type;
+v_max_ertek SZERELO.sz_autofelertekeles.ertek%type;
+v_ertek_min_datum SZERELO.sz_autofelertekeles.ertek%type;
+begin
+select min(datum), max(ertek)
+into v_min_datum, v_max_ertek
+from szerelo.sz_autofelertekeles
+where auto_azon=p_auto_azon;
+
+select ertek
+into v_ertek_min_datum
+from szerelo.sz_autofelertekeles
+where auto_azon=p_auto_azon
+and datum=v_min_datum;
+
+if v_ertek_min_datum!=v_max_ertek
+  then raise_application_error(-20001, 'Nem egyeznek');
+end if;
+
+p_datum:=v_min_datum;
+p_ertek:=v_max_ertek;
+end;
+
+declare 
+ v_datum SZERELO.sz_autofelertekeles.datum%type;
+ v_ertek SZERELO.sz_autofelertekeles.ertek%type; 
+begin
+proc_af(103,v_datum, v_ertek);
+dopl(v_datum||' '||v_ertek);
+end;
+
+declare 
+ v_datum SZERELO.sz_autofelertekeles.datum%type;
+ v_ertek SZERELO.sz_autofelertekeles.ertek%type; 
+begin
+  for i in (select azon, rendszam
+            from szerelo.sz_auto)
+            loop
+            dopl(i.rendszam);
+            proc_tulajok(103);
+            proc_af(103,v_datum, v_ertek);
+            dopl(v_datum||' '||v_ertek);
+            end loop;
+end;
+
+begin
+dopl(1/0);
+end;
+
+begin
+dopl(1/0);
+exception
+  when zero_divide
+  then dopl('0-val osztottunk');
+end;
+
+declare 
+  v number(1); 
+begin
+v:=10;
+dopl(v);
+exception
+  when zero_divide 
+  then dopl('0-val osztottunk');
+  when value_error
+  then dopl('Hib�s �rt�k');
+end;
+
+declare 
+  v number(1); 
+begin
+v:=10;
+dopl(v);
+exception
+  when zero_divide or value_error
+  then dopl('�rt�k hiba vagy 0-val val� oszt�s');
+  
+end;
+
+declare 
+  v number(1); 
+begin
+v:=1;
+v:=v/0;
+dopl(v);
+exception
+  when value_error
+  then dopl('�rt�k hiba vagy 0-val val� oszt�s');
+  when others
+  then dopl(sqlcode|| ' '||sqlerrm);
+end;
+
+create table szamok
+(sz number(2) not null);
+
+declare 
+  ex exception;
+  pragma exception_init(ex, -1400);
+begin
+insert into szamok values (null);
+exception
+  when ex
+  then dopl('Nem lehet null');
+end;
+
+declare 
+  ex exception;
+  pragma exception_init(ex, -1400);
+  ex2 exception;
+  pragma exception_init(ex2, -1438);
+begin
+insert into szamok values (100);
+exception
+  when ex
+  then dopl('Nem lehet null');
+  when ex2
+  then dopl('T�l hossz� sz�m');
+end;
+
+begin
+raise_application_error(-20005, 'Saj�t hiba�zenet');
+/*-20000..-20999*/
+end;
+
+create or replace procedure proc_kiv is
+begin
+raise_application_error(-20005, 'Saj�t hiba�zenet');
+end;
+
+declare 
+  ex exception;
+  pragma exception_init(ex, -20005);
+begin
+proc_kiv;
+exception
+  when ex then dopl('Elkaptam'||sqlerrm);
+end;
+
+declare
+  ex_null exception;
+  pragma exception_init(ex_null, -1400);
+  ex_large exception;
+  pragma exception_init(ex_large, -1438);
+begin
+for i in (select ar/100 ar2
+          from konyvtar.konyv order by cim)
+  loop
+    begin
+    insert into szamok values (i.ar2);
+    exception
+      when ex_null then dopl('null �rt�k');
+      when ex_large then dopl(i.ar2||' t�l hossz�');
+    end;
+  end loop;
+commit;
+end;
+
+declare
+  ex_null exception;
+  pragma exception_init(ex_null, -1400);
+  ex_large exception;
+  pragma exception_init(ex_large, -1438);
+begin
+delete szamok;
+for i in (select ar/100 ar2
+          from konyvtar.konyv order by cim)
+  loop
+    begin
+    insert into szamok values (i.ar2);
+    exception
+      when ex_null then dopl('null �rt�k');
+      when ex_large then dopl(i.ar2||' t�l hossz�');
+    end;
+  end loop;
+commit;
+end;
+
+declare 
+  v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from konyvtar.tag
+where olvasojegyszam='SZE-2010/151020-01';
+dopl(v.vezeteknev||' '||v.keresztnev);
+end;
+
+declare 
+  v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from konyvtar.tag
+where keresztnev='nincs';
+dopl(v.vezeteknev||' '||v.keresztnev);
+exception
+  when no_data_found
+  then dopl('Nincs ilyen n�v');
+  when too_many_rows
+  then dopl('T�l sok ilyen n�v van');
+end;
+
+�rjunk t�rolt f�ggv�nyt, amely param�terk�nt kapott 
+tulajdonos n�vhez visszaadja a tulaj azonos�t�j�t.
+Ha nincs ilyen n�v, akkor null �rt�ket ad vissza.
+Ha t�l sok ilyen n�v van, akkor 
+felhaszn�l�i kiv�telt dob.
+
+H�vjuk meg a f�ggv�nyt. 
+
+create or replace function f_tulaj2(
+   p_nev szerelo.sz_tulajdonos.nev%type) 
+   return szerelo.sz_tulajdonos.azon%type is
+   v_tulaj_azon szerelo.sz_tulajdonos.azon%type;
+begin   
+select azon
+into v_tulaj_azon
+from szerelo.sz_tulajdonos
+where nev=p_nev;
+return v_tulaj_azon;
+exception
+  when no_data_found then return null;
+  when too_many_rows
+  then raise_application_error
+     (-20001, 'Sok ilyen nev� tulaj van');
+end;
+
+begin
+dopl(nvl(f_tulaj2('Kiss P�ter'),-1));
+end;
+
+begin
+dopl(nvl(f_tulaj2('Kov�cs L�szl�'),-1));
+end;
+
+begin
+execute immediate 'create table szamok2 (sz number(2))';
+end;
+
+begin
+for i in 1..10
+loop
+execute immediate 
+   'create table szamok1'||i||' (sz number(2))';
+end loop;
+end;
+
+begin
+dopl(nvl(f_tulaj2('Veress P�ter'),-1));
+end;
+
+create or replace procedure
+  proc_szam_insert(p_tabla number, p_ertek number) is
+  begin
+  execute immediate 
+  'insert into szamok1'||p_tabla||
+  ' values ('||p_ertek||')';
+  end;
+  
+begin
+  proc_szam_insert(5, 10);
+  commit;
+end;
+
+begin
+  for i in 1..10
+    loop
+    for j in 20..40 
+      loop
+       proc_szam_insert(i, j);
+      end loop;
+    end loop;
+  commit;
+end;
+
+begin
+ execute immediate 
+    'create table gyumik (sz number(2))';
+end;
+
+begin
+for i in 1..10
+  loop
+ execute immediate 
+    'create table gyumik'||i||
+    ' (sz number(2))';
+end loop;
+end;
+
+begin
+for i in 1..10
+loop
+ insert into  gyumik values (i);
+end loop;
+commit;
+end;
+
+begin
+for i in 1..10
+loop
+  for j in 50..99
+    loop
+     execute immediate 'insert into  gyumik'||i||
+     ' values ('||j||')';
+    end loop;
+end loop;
+commit;
+end;
+
+begin
+for i in 1..10
+loop
+   execute immediate 'drop table gyumik'||i;
+end loop;
+end;
+
+begin
+dopl(1/0);
+exception
+  when zero_divide
+  then dopl('0-val val� oszt�s');
+end;
+
+declare 
+  v number(1);
+begin
+v:=10;
+dopl(1/0);
+exception
+  when zero_divide
+  then dopl('0-val val� oszt�s');
+  when value_error
+  then dopl('�rt�k hiba');
+end;
+
+declare 
+  v number(1);
+begin
+v:=10;
+dopl(1/0);
+exception
+  when zero_divide or value_error
+  then dopl('0-val val� oszt�s vagy �rt�k hiba');
+end;
+
+declare 
+  v number(1);
+begin
+v:=10;
+dopl(1/0);
+exception
+  when zero_divide or value_error
+  then dopl('0-val val� oszt�s vagy �rt�k hiba');
+  when others
+  then dopl('Minden m�s kiv�tel');
+end;
+
+declare 
+  v number(1);
+begin
+v:=10;
+dopl(1/0);
+exception
+  when others
+  then dopl(sqlcode||sqlerrm);
+end;
+
+create table szamok
+(sz number(1) not null);
+
+declare 
+  ex exception;
+  pragma exception_init(ex,-1400);
+begin
+insert into szamok (sz) values (null);
+exception
+  when ex then dopl('Null nem lehet');
+end;
+
+declare 
+  ex_null exception;
+  pragma exception_init(ex_null,-1400);
+  ex_long exception;
+  pragma exception_init(ex_long,-1438);
+begin
+insert into szamok (sz) values (10);
+exception
+  when ex_null then dopl('Null nem lehet');
+  when ex_long then dopl('T�l hossz�');
+end;
+
+/*declare 
+  ex_null exception;
+  pragma exception_init(ex_null,-1400);
+  ex_long exception;
+  pragma exception_init(ex_long,-1438);*/
+begin
+for i in (select ar/1000 ar2 from konyvtar.konyv
+          order by isbn)
+  loop        
+    insert into szamok (sz) values (i.ar2);
+/*exception
+  when ex_null then dopl('Null nem lehet');
+  when ex_long then dopl('T�l hossz�');*/
+  end loop;
+commit;
+end;
+
+declare 
+  ex_null exception;
+  pragma exception_init(ex_null,-1400);
+  ex_long exception;
+  pragma exception_init(ex_long,-1438);
+begin
+for i in (select ar/1000 ar2 from konyvtar.konyv
+          order by isbn)
+  loop     
+    begin
+      insert into szamok (sz) values (i.ar2);
+    exception
+      when ex_null then dopl('Null nem lehet');
+      when ex_long then dopl('T�l hossz�'||i.ar2);
+    end;
+  end loop;
+commit;
+end;
+
+declare 
+ v_vnev konyvtar.tag.vezeteknev%type;
+ v_knev konyvtar.tag.keresztnev%type;
+begin
+select vezeteknev, keresztnev
+into v_vnev, v_knev
+from konyvtar.tag
+where olvasojegyszam='SZE-2010/151020-01';
+dopl(v_vnev||' '||v_knev);
+end;
+
+declare 
+ v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from konyvtar.tag
+where olvasojegyszam='SZE-2010/151020-01';
+dopl(v.vezeteknev||' '||v.keresztnev);
+end;
+
+begin
+  raise_application_error(-20005,'Hiba �zenet');
+  /*-20000..-20999*/
+end;
+
+declare 
+ v konyvtar.tag%rowtype;
+begin
+select *
+into v
+from konyvtar.tag
+where olvasojegyszam='aBC';
+dopl(v.vezeteknev||' '||v.keresztnev);
+exception
+  when no_data_found
+  then dopl('Nincs ilyen');
+end;
+
+3. ÓRA------------------------------------------------------------------------------------
+�rjunk triggert, amely akkor indul el, amikor
+a tulajdonos t�bl�ba �j sort vesz�nk fel, vagy 
+a c�m oszlopot m�dos�tjuk.
+A trigger megvizsg�lja, hogy az c�mben az utols� karakter egy '.'  
+Ha nem ilyen c�m, akkor dobjunk felhaszn�l�i kiv�telt. 
+create table sz_tulaj as
+select *
+from szerelo.sz_tulajdonos;
+
+select cim, substr(cim, length(cim), 1)
+from szerelo.sz_tulajdonos;
+
+create or replace trigger tr_tulaj
+before insert or update of cim on sz_tulaj
+for each row
+--declare 
+begin
+if substr(:new.cim, length(:new.cim), 1)!='.'
+  then raise_application_error(-20005, 'Hib�s c�m');
+end if;
+end;
+
+INSERT INTO sz_tulaj (azon, nev, cim)
+VALUES (1000, 'Kiss Piroska','Db, Doberd� u. 23');
+
+INSERT INTO sz_tulaj (azon, nev, cim)
+VALUES (1000, 'Kiss Piroska','Db, Doberd� u. 23.');
+
+update sz_tulaj
+set cim='Db. Doberd� 23'
+where azon=515;
+
+update sz_tulaj
+set cim='Db. Doberd� 23.'
+where azon=515;
+
+update sz_tulaj
+set nev=nev||'.'
+where azon=515;
+
+�rjunk triggert, amely akkor indul el, amikor
+a tulaj t�bl�b�l t�rl�nk.
+K�perny�re �rja a kit�r�lt tulaj nev�t. 
+
+create or replace trigger tr_tulaj_torol
+after delete on sz_tulaj
+for each row
+begin
+dopl(:old.nev);
+end;
+
+delete sz_tulaj
+where azon between 500 and 600;
+rollback;
+
+�rjunk triggert, amely akkor indul el, amikor
+a tulaj t�bl�n valamilyen m�dos�t�s t�rt�nik.
+A trigger egy naplo t�bl�ba sz�rja az utas�t�s t�pus�t,
+�s a r�gi �s az �j tulajnevet �s azonos�t�t a m�dos�t�s d�tum�val egy�tt.
+create table sz_tulaj_naplo
+(utasitas varchar2(30),
+regi_azon number(5),
+uj_azon number(5),
+regi_nev varchar2(50),
+uj_nev varchar2(50),
+idopont date);
+
+create or replace trigger tr_tulaj_naplo
+after insert or update or delete on sz_tulaj
+for each row
+declare
+  v_ut varchar2(10);
+begin
+if inserting then v_ut:='insert';
+elsif updating then v_ut:='update';
+elsif deleting then v_ut:='delete';
+end if;
+insert into sz_tulaj_naplo (utasitas,regi_azon,uj_azon,regi_nev,uj_nev,idopont)
+values (v_ut,:old.azon, :new.azon, :old.nev, :new.nev, sysdate);
+end;
+
+update sz_tulaj
+set cim=cim||'.'
+where azon between 500 and 600;
+rollback;
+
+insert into sz_tulaj(azon, nev, cim)
+select substr(olvasojegyszam,17,2), vezeteknev||' '||keresztnev, cim
+from konyvtar.tag;
+rollback;
+
+�rjunk triggert, amely akkor indul el, amikor
+a sz_tulaj_naplo t�bl�t t�r�lni vagy m�dos�tani szeretn�k.
+A trigger dobjon felhaszn�l�i kiv�telt. 
+
+create or replace trigger tr_naplo
+before update or delete on sz_tulaj_naplo
+begin
+raise_application_error(-20007, 'Nem lehet t�r�lni, m�dos�tani');
+end;
+
+delete sz_tulaj_naplo;
+
+
+
+create or replace trigger tr_szamok
+before insert or update or delete on szamok
+begin
+if inserting then dopl('insert');
+elsif updating then dopl('update');
+else dopl('delete');
+end if;
+end;
+
+delete szamok;
+rollback;
+
+delete szamok where 0=1;
+
+
+
+create or replace trigger tr_szamok2
+before insert or update on szamok
+for each row
+begin
+:new.sz:=10*:new.sz;
+end;
+
+update szamok
+set sz=-1*sz
+where sz between 1 and 3;
+
+/*alter table szamok
+modify sz number(3); */
+
+�rjunk triggert, amely akkor indul el, amikor 
+�j szerel�t vesz�nk fel, vagy a szerel� fizet�se m�dosul a dolgozik t�bl�ban.
+Ha az �j fizet�s kevesebb, mint az adott m�hely el�z� havi �sszmunkav�gz�si �r�nak a 10%-a,
+akkor az �j fizet�s legyen az adott m�hely el�z� havi �sszmunkav�gz�si �r�nak a 10%-a.
+drop table sz_dolgozik;
+create table sz_dolgozik as
+select * from szerelo.sz_dolgozik;
+
+create or replace trigger tr_dolgozik
+before insert or update of havi_fizetes on sz_dolgozik
+for each row
+declare
+  v_fiz szerelo.sz_szereles.munkavegzes_ara%type;
+begin
+select sum(munkavegzes_ara)*0.1
+into v_fiz
+from szerelo.sz_szereles
+where muhely_azon=:new.muhely_azon
+and szereles_kezdete between trunc(add_months(:new.munkaviszony_kezdete, -1),'mm') and 
+trunc(:new.munkaviszony_kezdete,'mm');
+
+if :new.havi_fizetes<v_fiz
+  then :new.havi_fizetes:=v_fiz;
+end if;
+end;
+
+update sz_dolgozik
+set havi_fizetes=0
+where szerelo_azon=302;
+
+create table s_orszagok as
+select *
+from olimpia.o_orszagok;
+
+create or replace view v_eu_orsz as
+select azon, orszag, terulet, lakossag, fovaros
+from s_orszagok
+where foldresz='Eur�pa';
+
+select *
+from v_eu_orsz;
+
+insert into v_eu_orsz(azon, orszag, fovaros)
+values (1000, 'Meseorsz�g','Lillaf�red');
+
+commit;
+select *
+from v_eu_orsz;
+
+select *
+from s_orszagok;
+
+create or replace trigger tr_eu_orsz
+instead of insert on v_eu_orsz
+for each row
+begin
+INSERT INTO s_orszagok (azon,orszag,terulet,lakossag,fovaros,foldresz) 
+VALUES (:new.azon,:new.orszag,:new.terulet,:new.lakossag,:new.fovaros,'Eur�pa');
+end;
+
+insert into v_eu_orsz(azon, orszag, fovaros)
+values (1001, 'Liliput','J�zsa');
+
+commit;
+select *
+from v_eu_orsz;
+
+select *
+from s_orszagok;
+
+create or replace view v_eu_orsz2 as
+select azon, orszag, terulet, lakossag, fovaros
+from s_orszagok
+where foldresz='Eur�pa'
+with check option;
+
+insert into v_eu_orsz2(azon, orszag, fovaros)
+values (1000, 'Meseorsz�g','Lillaf�red');
+
+�rjon triggert, amely nem enged olyan szerel�st 
+felvinni vagy olyanra m�dos�tani, 
+--ahol a szerel�s munkav�gz�s�nek az �ra t�bb, mint az aut� 
+els� v�s�rl�si �r�nak a 10%-a. 
+--Dobjon kiv�telt a trigger ezekben az esetekben.
+drop table sz_szereles;
+create table sz_szereles as
+select * from szerelo.sz_szereles;
+
+create or replace trigger tr_szereles
+before insert or update of munkavegzes_ara on sz_szereles
+for each row
+declare
+ v_eva szerelo.sz_auto.elso_vasarlasi_ar%type;
+begin
+select elso_vasarlasi_ar*0.1
+into v_eva
+from szerelo.sz_auto
+where azon=:new.auto_azon;
+
+if :new.munkavegzes_ara>v_eva
+   then raise_application_error(-20003, 'Dr�ga munkav�gz�s');
+end if;   
+end;
+
+INSERT INTO sz_szereles (auto_azon,muhely_azon,szereles_kezdete,
+    szereles_vege,munkavegzes_ara) 
+VALUES (101, 103, sysdate, null, 10000000);
+
+INSERT INTO sz_szereles (auto_azon,muhely_azon,szereles_kezdete,
+    szereles_vege,munkavegzes_ara) 
+VALUES (101, 103, sysdate, null, 10000);
+rollback;
+
+�rjunk triggert, amely akkor indul el, amikor az 
+aut� t�bl�b�l t�rl�nk.
+A trigger �rja k�perny�re az aut� azonos�t�j�t, 
+rendsz�m�t �s t�pus�t.
+drop table sz_auto;
+create table sz_auto as
+select *
+from szerelo.sz_auto;
+
+create or replace trigger tr_auto
+after delete on sz_auto
+for each row
+declare 
+  v_tipus szerelo.sz_autotipus.megnevezes%type;
+  v_marka szerelo.sz_autotipus.marka%type;
+begin
+  begin
+   select megnevezes, marka
+   into v_tipus, v_marka
+   from szerelo.sz_autotipus
+   where azon=:old.tipus_azon;
+   exception when no_data_found then null;
+  end;
+  dopl('vmi');
+dopl(:old.azon||' '||:old.rendszam||' '||v_tipus||' '||v_marka);
+end;
+/
+delete sz_auto
+where szin='piros';
+
+
+�rjunk triggert, amely az aut� t�bl�n t�rt�n� b�rmilyen 
+m�dos�t�s napl�zza egy t�bl�ba. 
+create table sz_auto_naplo
+(utasitas varchar2(10),
+regi_azon number(5),
+uj_azon number(5),
+regi_rendszam varchar2(10),
+uj_rendszam varchar2(10),
+regi_szin varchar2(20),
+uj_szin varchar2(20),
+datum date);
+
+create or replace trigger tr_auto_naplo
+after insert or update or delete on sz_auto
+for each row
+declare
+  v_ut varchar2(10);
+begin
+if inserting then v_ut:='insert';
+elsif updating then v_ut:='update';
+elsif deleting then v_ut:='delete';
+end if;
+insert into sz_auto_naplo(utasitas,regi_azon,uj_azon,
+regi_rendszam,uj_rendszam,regi_szin,uj_szin,datum)
+values (v_ut,:old.azon, :new.azon, :old.rendszam, :new.rendszam,
+:old.szin, :new.szin, sysdate);
+end;
+
+update sz_auto
+set szin='hupilila',
+rendszam=rendszam||'.'
+where szin='k�k';
+
+delete sz_auto
+where szin='sz�rke';
+
+select *
+from sz_auto_naplo;
+rollback;
+
+�rjunk triggert, amely megakad�lyozza, hogy
+az auto_naplo t�bl�b�l t�r�lj�nk vagy
+m�dos�tsunk rajta.
+create or replace trigger tr_auto_naplo_del
+before update or delete on sz_auto_naplo
+begin
+raise_application_error(-20002, 'Nem lehet t�r�lni, m�dos�tani a napl� t�bl�t');
+end;
+
+delete sz_auto_naplo;
+
+delete sz_auto_naplo
+where 0=1;
+
+drop table gyumi;
+create table gyumi
+(nev varchar2(40));
+
+create or replace trigger tr_gyumi
+before insert on gyumi
+for each row
+begin
+:new.nev:=:new.nev||' fa';
+end;
+
+insert into gyumi(nev)
+values ('sz�l�');
+
+select *
+from gyumi;
+
+create table a_konyv as
+select *
+from konyvtar.konyv;
+
+create view szepirodalom as
+select konyv_azon, ar, oldalszam, cim
+from a_konyv
+where tema='sz�pirodalom';
+
+select *
+from szepirodalom;
+
+insert into szepirodalom(konyv_azon, ar, oldalszam, cim)
+values (111,1000,450,'Aranyember');
+
+select *
+from szepirodalom;
+
+select *
+from a_konyv;
+
+create or replace trigger tr_szepirod
+instead of insert on szepirodalom
+for each row
+begin
+
+INSERT INTO a_konyv (konyv_azon,cim,ar,tema,oldalszam) 
+VALUES (:new.konyv_azon,:new.cim, :new.ar, 'sz�pirodalom', :new.oldalszam);
+end;
+
+
+insert into szepirodalom(konyv_azon, ar, oldalszam, cim)
+values (1110,1000,450,'Egri csillagok');
+
+select *
+from szepirodalom;
+
+select *
+from a_konyv;
+
+create or replace view konyv_db as
+select count(*) db
+from a_konyv;
+
+select *
+from konyv_db;
+
+insert into szepirodalom(konyv_azon, ar, oldalszam, cim)
+values (1115,1000,450,'S�rga r�zsa');
+
+select *
+from konyv_db;
+
+�rjunk triggert, amely akkor indul el, 
+amikor a gyumi t�bl�t m�dos�tjuk (insert, update, delete).
+A trigger �rja ki a k�perny�re a m�veletet 
+�s a gyumi r�gi �s �j nev�t.
+
+create or replace trigger tr_gyumi_kiir
+after insert or update or delete on gyumi
+for each row
+begin
+if inserting then dopl('insert');
+elsif updating then dopl('update');
+else dopl('delete');
+end if;
+dopl(:new.nev||' '||:old.nev);
+end;
+
+
+update gyumi
+set nev=nev||'.'
+
+create table szamok5 
+(sz number(3));
+
+create or replace trigger tr_szamok5
+before insert or update on szamok5
+for each row
+--declare
+begin
+if :new.sz mod 2!=0
+   then raise_application_error(-20004, 'P�ratlan sz�m');
+end if;
+end;
+
+insert into szamok5 values (10);
+insert into szamok5 values (11);
+
+drop table sz_autofelertekeles;
+create table sz_autofelertekeles as
+select *
+from SZERELO.sz_autofelertekeles;
+
+create table sz_af_naplo
+(muvelet varchar2(10),
+idopont date,
+regi_auto_azon number(5),
+uj_auto_azon number(5),
+regi_datum date,
+uj_datum date,
+regi_ertek number(20),
+uj_ertek number(20));
+
+�rjunk triggert, amely akkor indul el, amikor
+az autofelertekeles t�bl�n valamilyen m�dos�t�s hajtunk v�gre.
+A trigger napl�zza a m�veletet, az id�pontot 
+�s a r�gi �s az �rt�keket egy t�bl�ba.
+create or replace trigger tr_af_naplo
+after insert or update or delete on sz_autofelertekeles
+for each row
+declare 
+  v_muv varchar2(10);
+begin
+if inserting then v_muv:='insert';
+elsif updating then v_muv:='update';
+elsif deleting then v_muv:='delete';
+end if;
+
+INSERT INTO sz_af_naplo (muvelet,idopont,regi_auto_azon,uj_auto_azon,
+    regi_datum,uj_datum,regi_ertek,uj_ertek) 
+VALUES (v_muv, sysdate, :old.auto_azon, :new.auto_azon,
+:old.datum, :new.datum, :old.ertek, :new.ertek);
+end;
+
+update sz_autofelertekeles
+set ertek=ertek*10
+where ertek<100000;
+
+select *
+from sz_af_naplo;
+
+rollback;
+
+delete sz_autofelertekeles
+where ertek<200000;
+
+select *
+from sz_af_naplo;
+
+rollback;
+
+�rjunk triggert, amely akkor indul el, amikor
+az autofelertekeles t�bl�nak az �rt�k oszlop�t m�dos�tj�k. 
+A trigger csak olyan �rt�km�dos�t�st engedjen, ahol az �rt�k cs�kken. 
+
+create or replace trigger tr_af
+before update of ertek on sz_autofelertekeles
+for each row
+begin
+if :new.ertek>:old.ertek
+   then raise_application_error(-20002, 'Csak cs�kkenhet az �rt�k');
+end if;
+end;
+
+update sz_autofelertekeles
+set ertek=ertek*10
+where ertek<200000;
+
+update sz_autofelertekeles
+set ertek=ertek/10
+where ertek<200000;
+rollback;
+
+create or replace trigger tr_sz5
+before insert or update on szamok5
+for each row
+begin
+:new.sz:=10;
+end;
+
+insert into szamok5
+values (3);
+insert into szamok5
+values (6);
+
+select *
+from szamok5;
+
+
+�rjunk triggert, amely megakad�lyozza, hogy
+a sz_af_naplo t�bl�t m�dos�tj�k, vagy a tartalm�t t�r�lj�k.
+
+create or replace trigger tr_af_naplo_ex
+before update or delete on sz_af_naplo
+begin
+raise_application_error(-20002, 'Nem lehet t�r�lni, m�dos�tani');
+end;
+
+delete from sz_af_naplo;
+
+create table s2_auto as
+select *
+from szerelo.sz_auto;
+
+create table s2_autotipus as
+select *
+from szerelo.sz_autotipus;
+
+create or replace view v_au_tip as
+select au.azon auto_azon, szin, rendszam, tipus_azon, /*ati.azon tip_azon,*/
+megnevezes tipus, marka 
+from s2_auto au left outer join s2_autotipus ati
+on au.tipus_azon=ati.azon;
+
+select *
+from v_au_tip;
+alter table s2_autotipus
+add constraint ati_pk primary key (azon);
+
+alter table s2_auto
+add constraint au_pk primary key (azon);
+
+/*INSERT INTO v_au_tip (auto_azon,szin,rendszam, tipus_azon,tipus,marka) 
+VALUES (500, 'lila','wwwwww',16, 'A3', 'Audi');*/
+
+create or replace trigger tr_au_tip
+instead of insert on v_au_tip
+for each row
+declare 
+  v_tipus s2_autotipus.megnevezes%type;
+  v_marka s2_autotipus.marka%type;
+begin
+  begin
+   select megnevezes, marka
+   into v_tipus, v_marka
+   from s2_autotipus
+   where azon=:new.tipus_azon;
+   if not(v_tipus=:new.tipus and v_marka=:new.marka)
+      then raise_application_error(-20010,'Nem egyez� m�rka �s t�pus');
+   end if;
+   exception when no_data_found
+   then if :new.tipus_azon is null then null; 
+        else raise_application_error(-20009,'Nincs ilyen m�rka �s t�pus'); 
+        end if;
+  end;
+insert into s2_auto(azon, szin, rendszam, tipus_azon)
+values (:new.auto_azon, :new.szin, :new.rendszam, :new.tipus_azon);
+end;
+
+INSERT INTO v_au_tip (auto_azon,szin,rendszam, tipus_azon,tipus,marka) 
+VALUES (500, 'lila','wwwwww',16, 'A3', 'Audi');
+
+select *
+from s2_auto
+where rendszam='wwwwww';
+
+create or replace view v_piros_auto as
+select azon, rendszam
+from s2_auto
+where szin='piros';
+
+insert into v_piros_auto(azon, rendszam)
+values (600, 'dddddd');
+
+select *
+from v_piros_auto;
+
+select *
+from s2_auto;
+
+create or replace trigger tr_piros_au
+instead of insert on v_piros_auto
+begin
+insert into s2_auto(azon, rendszam, szin)
+values (:new.azon, :new.rendszam, 'piros');
+end;
+
+insert into v_piros_auto(azon, rendszam)
+values (700, 'eeeeee');
+
+select *
+from v_piros_auto;
+
+create sequence seq10;
+
+insert into v_piros_auto(azon, rendszam)
+values (seq10.nextval, 'lll');
+
+4. ÓRA------------------------------------------------------------------------------------
+
+�rjunk t�rolt elj�r�st, amely param�terk�nt kapott 
+olvasojegysz�mhoz k�perny�re list�zza 
+az adott olvas� �ltal jelenleg k�lcs�nz�s alatt
+l�v� k�nyveit: lelt�ri_sz�m, k�nyv_azon, k�nyv_cim, k�lcs�nz�si_d�tum, h�ny napra.
+Ha a param�terk�nt kapott olvas�jegysz�m nem l�tezik, akkor
+dobjon felhaszn�l�i kiv�telt. 
+Ha az olvas� nem k�lcs�nz�tt, akkor dobjon felhaszn�l�i kiv�telt.
+
+
+H�vjuk meg a t�rolt elj�r�st 
+-a nyugd�jas olvas�kra.
+-olyan olvas�ra, aki nem l�tezik
+- olyan olvas�ra, aki nem k�lcs�nz�tt.
+
+create or replace procedure pr_f1(
+    p_olvasojegyszam KONYVTAR.tag.olvasojegyszam%type) is
+v_o KONYVTAR.tag.olvasojegyszam%type;
+v_db number(10);
+begin
+select olvasojegyszam into v_o from konyvtar.tag 
+where olvasojegyszam=p_olvasojegyszam;
+
+select count(*) into v_db from konyvtar.kolcsonzes
+where tag_azon=p_olvasojegyszam;
+if v_db=0 
+   then raise_application_error(-20007, 'Az olvas�nak nincs k�lcs�nz�se'); 
+end if;
+
+for i in (select ko.leltari_szam, kk.konyv_azon, ky.cim, 
+          kolcsonzesi_datum, hany_napra
+          from KONYVTAR.kolcsonzes ko
+          inner join KONYVTAR.konyvtari_konyv kk
+          on ko.leltari_szam=kk.leltari_szam
+          inner join konyvtar.konyv ky
+          on kk.konyv_azon=ky.konyv_azon
+          where ko.tag_azon=p_olvasojegyszam)
+loop
+dopl(i.leltari_szam||', '||i.konyv_azon||', '||
+     i.cim||', '||i.kolcsonzesi_Datum||', '||i.hany_napra);
+end loop;
+exception
+  when no_data_found then raise_application_error(-20006, 'Nincs ilyen olvas�');
+end;
+
+begin
+pr_f1('SZE-2010/151020-04');
+end;
+
+begin
+pr_f1('SZE-2010/151020-01');
+end;
+
+begin
+pr_f1('SZE-2010/151020');
+end;
+
+select *
+from konyvtar.kolcsonzes;
+
+declare 
+    ex1 exception;
+    pragma exception_init(ex1,-20007);
+    ex2 exception;
+    pragma exception_init(ex2,-20006);
+begin
+  begin
+    dopl('1');
+    pr_f1('SZE-2010/151020-04');
+    
+  exception 
+     when ex1 or ex2
+     then dopl('2'); dopl(sqlerrm);
+  end;
+    
+  begin
+  dopl('3');
+   pr_f1('SZE-2010/151020');
+  exception 
+     when ex2 or ex1
+     then dopl('4'); dopl(sqlerrm);
+  end;
+  
+for j in (select olvasojegyszam from konyvtar.tag
+         where besorolas='nyugd�jas')
+loop
+  begin
+    pr_f1(j.olvasojegyszam);
+    exception 
+     when ex1
+     then dopl(sqlerrm);
+  end;
+end loop;
+end;
+
+
+�rjunk blokkot, amely tartalmaz egy elj�r�st,
+amely param�terk�nt kap egy szerzo_azont,
+�s kimen� param�terekben visszaadja, hogy a szerz� h�ny k�nyvet szerzett,
+h�ny k�l�nb�z� t�m�ban.
+A blokk minden szerz�h�z megh�vja az elj�r�st, 
+�s a szerzo_azon, szerzo_n�v �s a k�t kapott �rt�ket besz�rja egy t�bl�ba. 
+A blokk a fut�s elej�n t�rli a felt�ltend� t�bla tartalm�t.
+
+create table szerzok
+(szerzo_azon number(10),
+szerzo_nev varchar2(50),
+konyv_db number(5),
+tema_db number(5));
+
+declare
+  v_k_db number(5); 
+  v_t_db number(5);
+  procedure proc1 (p_szerzo_azon konyvtar.szerzo.szerzo_azon%type, 
+                   p_konyv_db out number, 
+                   p_tema_db out number) is
+    begin
+      select count(ksz.konyv_azon), count(distinct tema)
+      into p_konyv_db, p_tema_db
+      from konyvtar.konyvszerzo ksz inner join konyvtar.konyv ko
+          on ksz.konyv_azon=ko.konyv_azon
+      where ksz.szerzo_azon=p_szerzo_azon;
+    end;              
+ begin
+ delete szerzok;
+ for i in (select * from konyvtar.szerzo)
+   loop
+     proc1(i.szerzo_azon, v_k_db, v_t_db);
+    insert into szerzok(szerzo_azon, szerzo_nev,konyv_db,tema_db)
+    values (i.szerzo_azon, i.vezeteknev||' '||i.keresztnev, v_k_db, v_t_db);
+   end loop;
+ end;
+ 
+ select * from szerzok;
+ 
+ 
+ �rjunk blokkot, 
+amely tartalmaz egy f�ggv�nyt, 
+amely param�terk�nt kap egy k�nyv_azon
+�s visszaadja a konyv �r�t 
+osztva a k�nyv szerz�inek darabsz�m�val.
+
+A blokk eg�sz�tse ki a szerz�k t�bl�t,
+minden szerz�h�z �sszegezz�nk az �ltala �rt 
+�sszes k�nyvh�z a f�ggv�ny visszat�r�si �rt�k�t. 
+
+declare
+  v_ossz number(10):=0;
+  function f1(p_konyv_azon KONYVTAR.konyvszerzo.konyv_azon%type) return number is 
+   v_ar konyvtar.konyv.ar%type;
+   v_sz_db number(5);
+    begin
+     select ar into v_ar
+     from konyvtar.konyv where konyv_azon=p_konyv_azon;
+     select count(*) into v_sz_db
+     from konyvtar.konyvszerzo where konyv_azon=p_konyv_azon;
+     return v_ar/v_sz_db;
+    end;
+begin
+for i in (select szerzo_azon from szerzok) 
+  loop
+    for j in (select konyv_azon from konyvtar.konyvszerzo
+    where szerzo_azon=i.szerzo_azon)
+      loop
+      v_ossz:=v_ossz+f1(j.konyv_azon);
+      end loop;
+    update szerzok
+    set ossz_ar=v_ossz
+    where szerzo_azon=i.szerzo_azon;
+  end loop;
+end;
+
+alter table szerzok
+add (ossz_ar number(10));
+
+select *
+from szerzok;
+
+/*�rjunk t�rolt f�ggv�nyt, amely param�ter�l kapott
+konyvc�mhez visszaadja a k�nyv azonos�t�j�t, 
+�s list�zza a k�perny�re 
+a k�nyvh�z tartoz� k�nyvt�ri k�nyveket.
+Ha nincs ilyen k�nyv, akkor felhaszn�l�i kiv�telt dob 
+'Nincs ilyen k�nyv �zenettel'.
+Ha t�bb ilyen k�nyv van, akkor 
+a list�z�s minden k�nyvre t�rt�njen meg, 
+majd dobjon felhaszn�l�i kiv�telt 'T�bb ilyen k�nyv'
+�zenettel.
+
+H�vjuk meg a f�ggv�nyt
+- l�tez� k�nyvre,
+- nem l�tez� k�nyvre,
+- olyan k�nyvre, amib�l 2 van
+- a t�rt�nelem t�m�j� k�nyvekre. */
+
+create or replace function f_konyv(p_cim konyvtar.konyv.cim%type) 
+    return konyvtar.konyv.konyv_azon%type is
+    v_konyv_azon konyvtar.konyv.konyv_azon%type;
+begin
+select konyv_azon
+into v_konyv_azon
+from konyvtar.konyv
+where cim=p_cim;
+
+for i in (select leltari_szam from konyvtar.konyvtari_konyv
+          where konyv_azon=v_konyv_azon)
+  loop
+    dopl(i.leltari_szam);
+  end loop;
+return v_konyv_azon;
+exception 
+  when no_data_found 
+  then raise_application_error(-20005, 'Nincs ilyen k�nyv');
+  when too_many_rows
+  then for i in (select leltari_szam, konyv_azon 
+                 from konyvtar.konyvtari_konyv
+                 where konyv_azon in (select konyv_azon
+                                      from konyvtar.konyv
+                                      where cim=p_cim))
+        loop
+         dopl(i.leltari_szam||' '||i.konyv_azon);
+        end loop;
+        raise_application_error(-20004, 'T�bb ilyen k�nyv van');
+end;
+
+declare 
+  ex_sk exception;
+  pragma exception_init(ex_sk, -20004);
+begin
+dopl(f_konyv('T�zvar�zs'));
+dopl(f_konyv('Nap�leon'));
+exception
+  when ex_sk
+  then dopl(sqlerrm);
+end;
+
+declare 
+  ex_sk exception;
+  pragma exception_init(ex_sk, -20004);
+  ex_nk exception;
+  pragma exception_init(ex_nk, -20005);
+begin
+dopl(f_konyv('T�zvar�zs'));
+  begin
+    dopl(f_konyv('Nap�leon'));
+  exception
+    when ex_sk then dopl(sqlerrm);
+  end;
+  begin  
+   dopl(f_konyv('Nincs'));
+  exception
+   when ex_nk then dopl(sqlerrm);
+  end;
+  
+for i in (select cim from konyvtar.konyv
+         where tema='t�rt�nelem')
+  loop
+    begin
+     dopl(f_konyv(i.cim));
+     exception when ex_sk then dopl(i.cim||' '||sqlerrm);
+    end;
+  end loop;  
+  
+end;
+
+�rjunk blokkot, 
+amely tartalmaz egy elj�r�st, amely 
+param�terk�nt egy k�nyv azonos�t�t kap,
+�s kimen� param�terekben visszaadja,
+hogy a k�nyvnek h�ny szerz�je van,
+a k�nyvh�z h�ny p�ld�ny tartozik, �s 
+h�ny p�ld�nynak kevesebb az �rt�ke, mint a k�nyv �ra.
+
+A blokk h�vja meg az �sszes k�nyvre az elj�r�st, 
+a kapott eredm�nyeket sz�rja be egy t�bl�ba, 
+amelyet a blokk a fut�sa elej�n ki�r�t. 
+
+/*create table konyvek
+(konyv_azon number(10), 
+cim varchar2(200),
+szerzo_db number(5),
+peldany_db number(5),
+olcso_db number(5));*/
+
+declare
+   v_szerzo_db number(5);v_peldany_db number(5);
+   v_olcso_db number(5);
+  procedure pr1(p_konyv_azon konyvtar.konyv.konyv_azon%type,
+                p_szerzo_db out number,p_peldany_db out number,
+                p_olcso_db out number) is
+   begin
+     select count(szerzo_azon) into p_szerzo_db
+     from konyvtar.konyvszerzo where konyv_azon=p_konyv_azon;
+     select count(leltari_szam) into p_peldany_db
+     from konyvtar.konyvtari_konyv
+     where konyv_azon=p_konyv_azon;
+     select count(leltari_szam) into p_olcso_db
+     from konyvtar.konyv ko inner join konyvtar.konyvtari_konyv kk
+     on ko.konyv_azon=kk.konyv_azon
+     where ko.konyv_azon=p_konyv_azon
+     and ko.ar>kk.ertek;
+   end;
+begin
+delete konyvek;
+for i in (select konyv_azon, cim from konyvtar.konyv)
+  loop
+    pr1(i.konyv_azon,v_szerzo_db,v_peldany_db,v_olcso_db);
+    insert into konyvek(konyv_azon,cim,szerzo_db,
+        peldany_db,olcso_db)
+    values (i.konyv_azon, i.cim,v_szerzo_db,
+        v_peldany_db,v_olcso_db);             
+  end loop;
+commit;
+end;
+
+Sz�rja be az �sszes k�nyv azonos�t�j�t �s c�m�t 
+a konyvek t�bl�ba.
+
+insert into konyvek(konyv_azon, cim)
+select konyv_azon, cim
+from konyvtar.konyv;
+
+�rjon blokkot, amely
+m�dos�tja a konyvek t�bl�t,
+minden konyvh�z felveszi,
+hogy a k�nyvet h�nyszor k�lcs�n�zt�k,
+mikor k�lcs�n�zt�k utolj�ra,
+(�s ki k�lcs�n�zt utolj�ra).
+/*alter table konyvek
+add (kolcs_db number(5));
+alter table konyvek
+add (ut_kolcs date);
+
+alter table konyvek
+add (ut_kolcsonzo varchar2(20));*/
+
+declare
+  v_db number(5);
+  v_ut_kolcs date;
+  v_tag_azon konyvtar.kolcsonzes.tag_azon%type;
+begin
+ for i in (select * from konyvek)
+   loop
+   select count(kolcsonzesi_datum), max(kolcsonzesi_datum)
+   into v_db, v_ut_kolcs
+   from konyvtar.kolcsonzes ko inner join
+   konyvtar.konyvtari_konyv kk
+   on ko.leltari_szam=kk.leltari_szam
+   where kk.konyv_azon=i.konyv_azon;
+   
+   begin
+   select tag_azon into v_tag_azon
+   from KONYVTAR.konyvtari_konyv kk inner join
+   konyvtar.kolcsonzes ko
+   on ko.leltari_szam=kk.leltari_szam
+   where  kk.konyv_azon=i.konyv_azon
+   and kolcsonzesi_datum=v_ut_kolcs;
+   exception when no_data_found then v_tag_azon:=null;
+   end;
+   
+   update konyvek
+   set kolcs_db=v_db,
+   ut_kolcs=v_ut_kolcs,
+   ut_kolcsonzo=v_tag_azon
+   where konyv_azon=i.konyv_azon;
+   
+   end loop;
+end;
+
+
+   update konyvek kv
+   set (kolcs_db, ut_kolcs)=(
+            select count(kolcsonzesi_datum), max(kolcsonzesi_datum)
+            from konyvtar.kolcsonzes ko inner join
+                 konyvtar.konyvtari_konyv kk
+                on ko.leltari_szam=kk.leltari_szam
+      where kk.konyv_azon=kv.konyv_azon),
+      ut_kolcsonzo=(select tag_azon
+                    from KONYVTAR.konyvtari_konyv kk inner join
+                    konyvtar.kolcsonzes ko
+                    on ko.leltari_szam=kk.leltari_szam
+                    where  kk.konyv_azon=kv.konyv_azon
+                    and kolcsonzesi_datum=(select max(kolcsonzesi_datum)
+                                           from konyvtar.kolcsonzes ko 
+                                           inner join
+                                           konyvtar.konyvtari_konyv kk
+                                    on ko.leltari_szam=kk.leltari_szam
+                                    where kk.konyv_azon=kv.konyv_azon));
+
+�rjunk t�rolt elj�r�st, amely param�terk�nt kap 
+egy aut� rendsz�mot, �s k�perny�re list�zza
+az aut�hoz tarzoz� aut�fel�rt�kel�seket
+d�tum szerint cs�kken�en rendezve.
+Ha az aut� nem l�tezik, dobjunk 
+felhaszn�l�i kiv�tel.
+Ha az aut�hoz nincs fel�rt�kel�s, akkor 
+dobjunk felhaszn�l�i kiv�telt. 
+
+create or replace procedure pr10(
+     p_rendszam szerelo.sz_auto.rendszam%type) is
+  v_au_azon szerelo.sz_auto.azon%type;
+  v_db number(5);
+begin
+select azon into v_au_azon
+  from szerelo.sz_auto where rendszam=p_rendszam;
+select count(*) into v_db 
+  from szerelo.sz_autofelertekeles  where auto_azon=v_au_azon;
+dopl(v_db);  
+if v_db=0 then raise_application_error(-20009, 'Nincs fel�rt�kel�s');
+  end if;
+dopl('hello');
+for i in (select * from szerelo.sz_autofelertekeles 
+          where auto_azon=v_au_azon
+          order by datum desc)
+  loop
+    dopl(i.datum||' '||i.ertek);
+  end loop;
+exception 
+  when no_data_found 
+  then raise_application_error(-20003, 'Nincs ilyen aut�');
+end;
+
+H�vjuk meg az elj�r�st egy blokkb�l (minden fusson le):
+-l�tez� rendsz�mra, aminek van fel�rt�kel�se
+-nem l�tez� rendsz�mra
+-l�tez� rendsz�mra, nincs fel�rt�kel�s
+- a piros szin� aut�kra.
+
+select *
+from szerelo.sz_Auto
+where azon not in (select auto_azon from SZERELO.sz_autofelertekeles);
+
+declare
+  ex_na exception;
+  pragma exception_init(ex_na, -20003);
+  ex_nf exception;
+  pragma exception_init(ex_nf, -20009);
+begin
+pr10('SQL339');
+dopl('');
+pr10('DELTA2');
+  begin
+    pr10('SQL33');
+  exception
+    when ex_na
+    then dopl(sqlerrm);
+  end;
+  
+  begin
+   pr10('REM678');
+   exception
+     when ex_nf
+     then dopl(sqlerrm);
+  end;
+  
+for i in (select rendszam from szerelo.sz_auto
+          where szin='piros')
+  loop
+  begin
+  pr10(i.rendszam);
+    exception
+     when ex_nf
+     then dopl(sqlerrm);
+  end;
+  end loop;
+
+end;
+
+�rjunk blokkot, 
+amely tartalmaz egy elj�r�st, amely param�terk�nt kap egy 
+auto_azon-t, �s kimen� param�terben visszaadja, hogy 
+az aut�t h�nyszor szerelt�k, mennyi volt
+az �sszmunkav�gz�s �ra, h�ny �ves az aut�.
+A blokk tartalmaz egy m�sik elj�r�st, amely
+aut�tipus (azon) param�terhez visszaadja (kimen� param�terben), hogy
+az adott tipus� aut�kat �tlagosan h�nyszor szerelik egy �vben
+�s mennyi az �tlagos �sszmunkav�gz�si �r.
+A blokk h�vja meg 2. elj�r�st a Toyota m�rk�j� aut�kra. 
+
+declare
+v_atl_szereles number(10,2);
+v_atl_mva number(25,2);
+
+  procedure pr1 (p_auto_azon szerelo.sz_auto.azon%type,
+        p_szereles_db out number,
+        p_ossz_mva out number,
+        p_eves out number) is
+    begin
+    select count(szereles_kezdete), sum(munkavegzes_ara)
+    into p_szereles_db,p_ossz_mva
+    from SZERELO.sz_szereles
+    where auto_azon=p_auto_azon;
+    
+    select months_between(sysdate,elso_vasarlas_idopontja)/12
+    into p_eves
+    from szerelo.sz_auto
+    where azon=p_auto_azon;
+    
+    end;
+  
+  procedure pr2 (p_tipus_azon SZERELO.sz_autotipus.azon%type,
+               p_atl_szereles out number,
+               p_atl_mva out number) is
+     v_szereles_db number(4);
+     v_ossz_mva number(20,2);
+     v_eves number(3);          
+     v_db number(5);
+     v_sz number(10):=0;
+     v_mva number(25,2):=0;
+    begin
+    select count(azon) into v_db
+    from szerelo.sz_auto
+    where p_tipus_azon=tipus_azon;
+    for i in (select azon from szerelo.sz_auto
+              where p_tipus_azon=tipus_azon)
+       loop
+        pr1(i.azon, v_szereles_db, v_ossz_mva, v_eves);
+        dopl(v_szereles_db);
+        v_sz:=v_sz+v_szereles_db/v_eves;
+        dopl(v_sz);
+        v_mva:=v_mva+v_ossz_mva/v_eves;
+       end loop;
+       p_atl_szereles:=v_sz/v_db;
+       p_atl_mva:=v_mva/v_db;
+    exception 
+      when zero_divide
+      then null;
+    end;
+      
+begin
+  for t in (select azon, megnevezes from szerelo.sz_autotipus
+            where marka='Toyota')
+   loop
+    pr2(t.azon,v_atl_szereles,v_atl_mva);
+    dopl(t.megnevezes||', '||v_atl_szereles||', '||v_atl_mva);
+   end loop;
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
