@@ -1,0 +1,13 @@
+CSATLAKOZÁS fut.py FILE
+---------------------------------------------------------
+import redis
+
+
+host='172.22.230.177'
+
+r_port=6379
+r=redis.Redis(host, r_port, decode_responses=True)
+print(r.get('alma'))
+-----------------------------------------------------------
+
+IP címem: 172.22.230.177
