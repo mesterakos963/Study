@@ -11,3 +11,47 @@ print(r.get('alma'))
 -----------------------------------------------------------
 
 IP címem: 172.22.230.177
+
+KÉT ABLAK
+Virtual box -> sudo ifconfig enp0s3 172.22.229.177 netmask 255.255.255.0
+Putty -> ehhez az ip-hez csatlakozni -> így 2 kliensből is lehet szerkeszteni 
+
+LISTA -> típusfüggetlen, sorrendet tartja, jobbról balról lehet elemet adni hozzá
+
+Utasítások:
+RPUSH lista elem -> jobbról ad hozzá elemet
+LPUSH lista elem -> balról ad hozzá elemeketlő
+RPOP, LPOP -> eltávolítás
+LINDEX lista index-> kiírja az adott indexű elemet
+LRANGE lista tartomany -> tartományban kiírja az elemeket
+//ha negatívat adunk meg, akkor visszafelé történik -> 0 az első elem, -1 az utolsó
+LTRIM lista tartomany -> levágja, ami a tartományon kívül van
+LLEN -> lista hozza
+LPUSHX -> ha a kulcs létezik, beletol valamit, amit akarunk
+LINSERT lista BEFORE elem plusz elem -> első elem után hozzáad egy plusz elemet
+LREM lista elem -> kitöröl egy elemet, amit adunk neki LREM list1 liba -> töröl egy libát
+LREM list1 0 alma -> minden almát töröl
+LSET list1 2 liba -> felülírja az indexedik elemet liba-ra
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
