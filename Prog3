@@ -1,0 +1,60 @@
+(writeln "hello")
+(define (inc x) (+ x 1))
+(define (mysqr x)(* x x))
+(define (plusz10sz x)(* x 1.1))
+(define L1 (list 1 2 3))
+(define L2 (list "alma" "korte" "barack"))
+(writeln (map inc L1))
+(writeln (map mysqr L1))
+(writeln (map plusz10sz L1))
+;(define (páros-e x) (even ? x))
+;(writeln (filter páros-e L1))
+(writeln (filter odd? L1))
+;(writeln (map length L2))
+(writeln (apply max L1))
+(define (reduce f base lst)(foldl f base lst))
+; sum reduce-szal
+(writeln (reduce + 0 L1)) ; 6
+; sum apply-jal
+(writeln (apply + L1)) ; nem kell a 0, mert az apply csak 2 paraméteres
+
+; szeretnénk a filtert megírni reduce segítségével
+; mi a gond?
+; a filter 1 paraméteres függvényt vár,
+; a reduce pedig 2 paraméteres függvényt vár
+; a reduce úgy működik, hogy az eddigi részeredmény az első param
+; a második param a lista következő eleme
+; pl.:
+; (reduce + 0 (list 1 2 3))
+; ((0 + 1) + 2) + 3
+
+; a filter kap egy listát és visszaad egy listát
+; tehát nekem is listát kell majd visszaadnom
+; listát csinálni a const-sal lehet
+; pl.:
+; (cons 1 (list 2 3)) = (list 1 2 3)
+; (cons fej farok) = egy új lista, aminek a feje fej, farka farok
+(define (reduce f base lst) (fold1 f base lst))
+(define (my_filter p lst) 
+    (define (foo base l)
+        (define head (first l))
+        (define tail (rest l))
+        (cond
+            [(empty? l) base]
+            [(if (p head)
+                (cons head tail)
+                tail)])
+    )
+    (reduce foo empty lst)
+)
+(writeln (my_filter odd? (list 1 2 3 4 5 6 7)))
+
+
+
+
+
+
+
+
+
+
