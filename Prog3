@@ -49,6 +49,138 @@
 )
 (writeln (my_filter odd? (list 1 2 3 4 5 6 7)))
 
+; ami máshol a reduce fg. az Racketben a foldl
+(define (reduce f2 base lst) (foldl f2 base lst))
+(define (sum lst) (reduce + 0 lst))
+(writeln (sum (list 1 2 3 4)))
+
+(define (my-length lst)
+    (define (inc x y) (+ 1 y))
+    (reduce inc 0 lst))
+(writeln (my-length (list 1 2 0 0 4 5 2))) 
+
+; Magyarázat
+; (inc fej base)
+; (inc 1 0)
+; (inc 2 1)
+; (inc 0 2)
+; stb stb
+
+; (inc 1 (inc 2 (inc 0 ( inc 0 ....))))
+
+; minden halmazművelet visszavezethető az eleme-e predikátumra (member)
+; megnézzük, hogy 'a' eleme-e A
+
+(writeln (member 5 (list 1 "alma" 5 12)))
+(writeln (member 5 (list 1 "alma" 5 12)))
+
+; Racketben ami nem HAMIS, az IGAZ
+
+(writeln (if (member 5 (list 1 "alma" 5 12)) "igaz" "hamis"))
+(writeln (if (member 5 (list 1 "alma" 12)) "igaz" "hamis"))
+
+; Részhalmaz
+; A részhalmaza B : <=> Minden a eleme A-ra a eleme B
+; üres halmaz mindennek a részhalmaza, az üresnek is
+
+(define (subset A B)
+    (cond
+        [(empty? A) true
+        ; ha nem üres a lista szétszedem fejre és farokra
+        [else 
+            (define fej (first A))
+            (define farok (rest A))
+            ; meghívom önmagam rekurzívan a farokra, így kapom 
+            ; a farok értéket
+            (define farok_ertek (subset farok B))
+            ; majd egy konkrét példán keresztül megnézem, hogy kell kiszámolni
+            ; a visszatérési értéket a farok értékből és a fejből
+            ; (subset (list 3 5) (list 1 2 3 4 5 6 7)) = true
+            ; farok_érték = (subset (list 5) (list 1 2 3 4 5 6 7))
+            ; farok_érték = true
+            ; (if (member 3 (list 1 2 3 4 5 6 7)) = true
+            ; (if (member fej B) = true
+            ; másik példa
+            ; (subset (list 8 5) (list 1 2 3 4 5 6 7)) = false
+            ; farok_érték = (subset (list 5) (list 1 2 3 4 5 6 7))
+            ; farok_érték = true
+            (if (member fej B) 
+                farok_ertek
+                false)]))
+                
+(writeln (subset (list 3 5) (list 1 2 3 4 5 6 7)))
+(writeln (subset (list 8 5) (list 1 2 3 4 5 6 7)))
+(writeln (subset (list 3 6) (list 1 2 3 4 5 6 7)))
+
+; próbáljuk ugyanezt, csak reduce-szal
+; reduce esetén mindig az a kérdés,
+; hogy mi a 2 paramos fg.
+; f2 megkapja a fejet és az eddigi hívás akkumlátorát (részösszegét)
+
+(define (my_subset A B)
+    (define (f2 fej eddigi_reszeredmeny)
+        (if (member fej B)
+            eddigi_reszeredmeny
+            false))
+    (reduce f2 true A))
+    
+(writeln (my_subset (list 3 5) (list 1 2 3 4 5 6 7)))
+(writeln (my_subset (list 8 5) (list 1 2 3 4 5 6 7)))
+(writeln (my_subset (list 3 6) (list 1 2 3 4 5 6 7)))
+
+; Általános recept
+; megnézem, hogy üres-e a lista: (cond [(empty? param) ...
+;           ha üres, akkor gondolkozni kell,
+;                   mi az üres listára a jó válasz
+;           ha nem üres, akkor szétszedem fejre és farokra:
+;               (define fej (first param))
+;               (define farok (rest param))
+;           ez a 2 sor mindig kell, nem kell gondolkodni
+;           majd rekurzív hívás a farkon, mekapom a farok_értéket
+;               (define farok_ertek (függvénynén farok többi_param)
+;           ezen a soron se kell gondolkodni, mindig ugyanaz
+;           utolsó sor: farok értékből és fejből visszatérési érték
+;                       számolom a visszatérési értéket
+
+; Példa
+
+(define (my_sum lst)
+    (cond 
+        [(empty? lst) 0]
+        [else
+            (define fej (first lst))
+            (define farok (rest lst))
+            (define farok_ertek (my_sum farok))
+            ; (my_sum (list 1 2 3 4)) = 10
+            ; farok_érték = (my_sum (list 2 3 4)) = 9
+            ; 10 = 9 + 1
+            ;    = farok_ertek + fej
+            (+ farok_ertek fej)]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
