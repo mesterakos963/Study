@@ -157,8 +157,192 @@
             ;    = farok_ertek + fej
             (+ farok_ertek fej)]))
 
+; ------------------- EZ MÁR EGY MÁSIK ÓRA ------------------------------
 
+(define (my-member x lst)
+    (cond
+        [(empty? lst) false]
+        [else
+            (define head (first lst))
+            (define tail (rest lst))
+            (define tail-value (my-member x tail))
+; majd kiszámítom a visszatérési értéket
+; a fejből és a farok-értékből
+; ehhez érdemes csinálni egy-két konkrét példát
+    ; példa 1:
+    ; (my-member 5 (list 1 5 2)) = true
+    ; tail-value = (my-member 5 (list 5 2))
+    ; tail-value = true
+    ; példa 2:
+    ; (my-member 5 (list 3 9 6)) = false
+    ; tail-value = (my-member 5 (list 9 6))
+    ; tail-value = false
+    ; példa 3:
+    ; (my-member 5 (list 5 1 2)) = true
+    ; tail-value = (my-member 5 (list 1 2))
+    ; tail-value = false
+    ; ha x egyenlő fej, akkor igaz;
+    ;                       egyébként tail-value
+    ; if sintaxisa
+    ; (is (test) igaz-ág hamis-ág)
+    (if (= x head)
+        true
+        tail-value)]))
+        
+(writeln (my-member 5 (list 5 1 2)))
+(writeln (my-member 5 (list 3 9 6)))
 
+(define (my-member x lst)
+    (cond
+        [(empty? lst) false]
+        [else
+            (define head (first lst))
+            (define tail (rest lst))
+            (define tail-value (my-member x tail))
+            (if (= x head)
+                true
+                tail-value)]))
+            
+(writeln (my-member 8 (list 1 2 3 8)))
+(writeln (my-member 8 (list 8 2 2 4 7 5)))
+(writeln (my-member 8 (list 1 2 3)))
+    
+; az üres halmaz mindennek a részhalmaza, az üres halmaznak is
+; subset 2 paramos, A és B, mindkettő lista
+; A részhalmaza B-nek, ha A feje benne van B-be
+
+(define (my-subset A B)
+    (cond
+        [(empty? A) true]
+        [else
+            (define A-head (first A))
+            (define A-tail (rest A))
+            (define tail-value (my-subset A-tail B))
+            ; példa 1:
+            ; (my-subset (list 1 2) (list 2 5 1)) = true
+            ; tail-value = (my-subset (list 2) (list 2 5 1))
+            ; tail-value = true
+            ; példa 2:
+            ; (my-subset (list 1 2) (list 1 5 3)) = false
+            ; tail-value = (my-subset (list 2) (list 1 5 3))
+            ; tail-value = false
+            ; péld 3: - amikor a visszatérési érték nem ugyanaz, mint a tail-value
+            ; (my-subset (list 6 1 5 3) (list 1 5 3)) = false
+            ; tail-value = (my-subset (list 1 5 3) (list 1 5 3)) = true
+            ; ha A feje nincs benne B-ben, akkor false
+            ;                           egyébként tail-value
+            ; tagadás = not
+            ; benne van = member = my-member
+            (if (not (member A-head B))
+                    false
+                    tail-value)]))
+                    
+(writeln (my-subset (list 1 2) (list 2 5 1)))
+(writeln (my-subset (list 1 2) (list 1 5 3)))
+(writeln (my-subset (list 6 1 5 3) (list 1 5 3)))
+
+; -------- KOMMENTEK NÉLKÜL -----------
+
+(define (subset A B)
+    (cond
+        [(empty? A) true]
+        [else
+            (define A-head (first A))
+            (define A-tail (rest A))
+            (define A-tail-value (subset A-tail B))
+            (if (not (member A-head B))
+                false
+                A-tail-value)]))
+                    
+(writeln (subset (list 1 2) (list 2 5 1)))
+(writeln (subset (list 1 2) (list 1 5 3)))
+(writeln (subset (list 6 1 5 3) (list 1 5 3)))
+    
+
+;(define (last lst)
+;    (cond
+;        [(empty? lst) void]
+;        [(empty? (rest lst)) (first lst)]
+;        [else
+;        (last tail (rest lst))]))
+            
+;(writeln (last (list 1 2 3)))
+
+; Farok rekúrzió
+; akkor mondjuk, hogy egy függvény farok-rekúrzív
+; ha a rekurzív hívás az utolsó fgv hívás
+; rossz példa
+; f x = f x-1, g x -> nem jó, mert az utolsó hívás nem f, hanem g
+; jó példa
+; f x = g x, f x-1 -> ez jó, mert az utolsó hívás f o.O
+; a farok rekurzió nagyon jó dolog, 
+; mert a keretrendszer könnyen átfordítja ciklussá
+; ciklus vs rekurzió
+; mindkettő ugyanolyan erős,
+; amit meg lehet csinálni ciklussal, azt meg lehet csinálni rekurzióval is,
+; és fordítva:
+; amit meg lehet csinálni rekurzióval, azt meg lehet csinálni ciklussal is,
+; DE a rekurzió magasabb absztrakciós szinten van,
+; azaz közelebb van a matekhozm könnyebb megérteni
+; ezzel szemben a ciklus közelebb van assemblerhez
+; gyorsabb!!
+; rekurzióhoz kell verem, hiszen minden fg. hívás előtt le kell menteni a lokális változókat a verembe
+; ezzel szemben ciklusnál nem kell verem
+; a kettő előnyeit eggyesíti a farok rekurzió
+; mert rekurzió és a keretrendszer ciklust fordít belőle
+; SAJNOS:
+; ahhoz, hogy farok rekurziót csináljunk, kell akkumlátor
+; az akkuba gyűjtöm az eddigi részeredményt
+; ha elfogy a lista, akkor az akkuban van az eredmény
+
+; SABLON
+; (define (f lst) (g lst akku-kezdőértéke))
+; az akku kezdőértéke az, amit az üres listára kell visszaadni
+; (define (g lst akku))
+;   (cond
+;   [(empty? lst) akku]
+
+(define (sum lst) (sum2 lst 0))
+(define (sum2 lst akku)
+    (cond
+        [(empty? lst) akku]
+        [else
+            (define head (first lst))
+            (define tail (rest lst))
+            (define akku2 (+ akku head))
+            (sum2 tail akku2)]))
+            
+(writeln (sum (list 1 2 3)))
+
+; ha nem üres, akkor szétszedem fejre és farokra
+; kiszámolom akku2-őt akkuból, fejből
+; majd rekurziv hívás a farokkal és az akku2-vel
+
+(define (my-length lst) (my-length2 lst 0))
+(define (my-length2 lst akku)
+    (cond
+        [(empty? lst) akku]
+        [else
+            (define head (first lst))
+            (define tail (rest lst))
+            (define akku2 (+ akku 1))
+            (my-length2 tail akku2)]))
+            
+(writeln (my-length (list 1 2 3 4 5)))
+
+(define (my-subset A B) (my-subset2 A B true))
+(define (my-subset2 A B akku)
+    (cond
+        [(empty? A) akku]
+        [else
+            (define A-head (first A))
+            (define A-tail (rest A))
+            (define akku2
+                (if (member (A-head B))
+                    akku
+                    false))
+            (my-subset2 A-tail B akku2)]))              
+(write (my-subset (list 1 2) (list 2 5 1)))
 
 
 
